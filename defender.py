@@ -1,6 +1,5 @@
 """Utilisation de tkinter pour l'interface graphique"""
-from tkinter import Tk, Canvas
-# import threading
+from tkinter import Tk, Canvas, Button
 import random
 
 def main():
@@ -8,8 +7,32 @@ def main():
     creation_map()
     creation_monster(LIST_OF_MONSTERS)
 
+def click_event(event):
+    """Détection du clique de la souris sur le canvas de jeu"""
+    pos_grid_x = int(event.x / BLOC_SIZE)
+    pos_grid_y = int(event.y / BLOC_SIZE)
+    value_cell = MAP[pos_grid_y][pos_grid_x]
+    if  value_cell == "x":
+        create_options(pos_grid_x, pos_grid_y, value_cell)
+
+def create_options(pos_x, pos_y, code_cell):
+    """Affiche les options possibles suite à un clic sur une case du jeu"""
+    if code_cell == "x":
+        my_btn = Button(
+            CAN_OPTIONS,
+            text="del obstacle",
+            command=lambda: remove_obstacle(pos_x, pos_y))
+        # La taille du bouton dépend du caractère du bouton, ici un texte (pour l'instant)
+        #Donc la taille ne correspond pas à la taille d'un bloc
+        my_btn.config(width=7, height=4)
+        my_btn.pack()
+
+def remove_obstacle(grid_x, grid_y):
+    """Suppression de l'obstacle, conversion en case classique"""
+    print('Suppression obstacle en position: x=', grid_x, " y=", grid_y)
+
 def creation_map():
-    """Créé la carte du jeu selon la constante MAP"""
+    """Création de la carte du jeu selon la constante MAP"""
     for pos_y, line in enumerate(MAP):
         for pos_x, value in enumerate(line):
             if value == 0:
@@ -20,9 +43,17 @@ def creation_map():
                     (pos_y+1) * BLOC_SIZE,
                     fill="red"
                 )
+            if value == "x":
+                CANVAS.create_rectangle(
+                    pos_x * BLOC_SIZE,
+                    pos_y * BLOC_SIZE,
+                    (pos_x+1) * BLOC_SIZE,
+                    (pos_y+1) * BLOC_SIZE,
+                    fill="black"
+                )
 
 def creation_monster(list_of_monsters):
-    """Création du premier monstre"""
+    """Création du premier monstre et donc de la vague"""
     if list_of_monsters is None:
         list_of_monsters = []
 
@@ -64,9 +95,6 @@ class Monster():
 
     def auto_move(self):
         """Analyse les chemins possible et déplace le monstre"""
-        # self.timer = threading.Timer(0.05, self.auto_move)
-        # self.timer.start()
-
         middle_y_monster = int(self.pos_y + self.height / 2)
         middle_y_bloc = int(self.grid_y * BLOC_SIZE + BLOC_SIZE / 2)
         middle_x_monster = self.pos_x + self.width / 2
@@ -94,8 +122,8 @@ class Monster():
             if self.pos_y > self.height and len(LIST_OF_MONSTERS + DEAD_MONSTERS) < WAVE_SIZE:
                 creation_monster(LIST_OF_MONSTERS)
 
-        if self.grid_y < len(MAP):
-            F.after(20, self.auto_move)
+        if self.grid_y < len(MAP) - 1:
+            F.after(2, self.auto_move)
 
     def analyse_direction(self):
         """Analyse les changements potentiels de direction"""
@@ -117,28 +145,33 @@ class Monster():
         if coord_y < len(MAP) - 1:
             self.direction = available_position[random.randrange(len(available_position))]
         else:
-            # self.timer.cancel()
             LIST_OF_MONSTERS.remove(self)
             DEAD_MONSTERS.append(self)
 
 # Paramètres
+# 0: chemin pour les enemies
+# 1: case vide
+# 2-9: défenseurs alliés
+# 'x': case objet à démolir avant de pouvoir construire
 MAP = [
     [1, 1, 1, 1, 1, 0, 1, 1, 1, 1, 1],
     [0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0],
     [0, 1, 1, 1, 1, 1, 1, 1, 1, 1, 0],
-    [0, 1, 0, 0, 1, 0, 1, 0, 0, 1, 0],
+    [0, 1, "x", "x", 1, 0, 1, "x", "x", 1, 0],
     [0, 1, 1, 1, 1, 1, 1, 1, 1, 1, 0],
     [0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0],
     [0, 1, 1, 1, 1, 1, 1, 1, 1, 1, 0],
-    [0, 1, 0, 0, 1, 0, 1, 0, 0, 1, 0],
+    [0, 1, "x", "x", 1, 0, 1, "x", "x", 1, 0],
     [0, 1, 1, 1, 1, 1, 1, 1, 1, 1, 0],
     [0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0],
     [1, 1, 1, 1, 1, 0, 1, 1, 1, 1, 1]
 ]
-BLOC_SIZE = 50
+BLOC_SIZE = 80
+LENGTH_OPTIONS = 1
 
 # Création des variables selon les paramètres originaux
-SCREEN_WIDTH = int(len(MAP[0]) * BLOC_SIZE)
+OPTIONS_WIDTH = LENGTH_OPTIONS * BLOC_SIZE
+SCREEN_WIDTH = int((len(MAP[0]) + LENGTH_OPTIONS) * BLOC_SIZE)
 SCREEN_HEIGHT = int(len(MAP) * BLOC_SIZE)
 
 # Autres variables
@@ -146,15 +179,21 @@ LIST_OF_MONSTERS = []
 DOWN = (0, 1)
 LEFT = (-1, 0)
 RIGHT = (1, 0)
-WAVE_SIZE = 10
+WAVE_SIZE = 20
 DEAD_MONSTERS = []
 
-
-
-# Création de la fenêtre
+# Création de la fenêtre et des canvas
 F = Tk()
 F.geometry(str(SCREEN_WIDTH)+"x"+str(SCREEN_HEIGHT))
-CANVAS = Canvas(F, width=SCREEN_WIDTH, height=SCREEN_HEIGHT)
-CANVAS.pack()
+
+CANVAS = Canvas(F, width=SCREEN_WIDTH-OPTIONS_WIDTH, height=SCREEN_HEIGHT)
+CANVAS.bind("<Button-1>", click_event)
+CANVAS.place(x=0, y=0)
+
+CAN_OPTIONS = Canvas(F, width=OPTIONS_WIDTH, height=SCREEN_HEIGHT)
+CAN_OPTIONS.place(x=SCREEN_WIDTH-OPTIONS_WIDTH, y=0)
+
+
 main()
+
 F.mainloop()
