@@ -64,38 +64,23 @@ def creation_map():
 def creation_bloc(grid_x, grid_y):
     """Création de chaque bloc constituant la carte"""
     value = MAP[grid_y][grid_x]
+    color = "white"
     if value == 0:
-        CANVAS.create_rectangle(
-            grid_x * BLOC_SIZE,
-            grid_y * BLOC_SIZE,
-            (grid_x+1) * BLOC_SIZE,
-            (grid_y+1) * BLOC_SIZE,
-            fill="white"
-        )
+        color = "white"
     elif value == 1:
-        CANVAS.create_rectangle(
-            grid_x * BLOC_SIZE,
-            grid_y * BLOC_SIZE,
-            (grid_x+1) * BLOC_SIZE,
-            (grid_y+1) * BLOC_SIZE,
-            fill="green"
-        )
+        color = "green"
     elif value == 2:
-        CANVAS.create_rectangle(
-            grid_x * BLOC_SIZE,
-            grid_y * BLOC_SIZE,
-            (grid_x+1) * BLOC_SIZE,
-            (grid_y+1) * BLOC_SIZE,
-            fill="red"
-        )
+        color = "red"
     elif value == "x":
-        CANVAS.create_rectangle(
-            grid_x * BLOC_SIZE,
-            grid_y * BLOC_SIZE,
-            (grid_x+1) * BLOC_SIZE,
-            (grid_y+1) * BLOC_SIZE,
-            fill="black"
-        )
+        color = "black"
+
+    CANVAS.create_rectangle(
+        grid_x * BLOC_SIZE,
+        grid_y * BLOC_SIZE,
+        (grid_x+1) * BLOC_SIZE,
+        (grid_y+1) * BLOC_SIZE,
+        fill=color
+    )
 
 def creation_monster(list_of_monsters):
     """Création du premier monstre et donc de la vague"""
