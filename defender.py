@@ -54,6 +54,7 @@ def create_defender(grid_x, grid_y):
     MAP[grid_y][grid_x] = 2
     creation_bloc(grid_x, grid_y)
     clean_canvas_option()
+    Defender(grid_x, grid_y)
 
 def creation_map():
     """Création de la carte du jeu selon la constante MAP"""
@@ -116,6 +117,7 @@ class Monster():
                 fill=self.color
             )
         ]
+        self.life = 4
         self.direction = DOWN
 
         LIST_OF_MONSTERS.append(self)
@@ -152,8 +154,8 @@ class Monster():
             if self.pos_y > self.height and len(LIST_OF_MONSTERS + DEAD_MONSTERS) < WAVE_SIZE:
                 creation_monster(LIST_OF_MONSTERS)
 
-        if self.grid_y < len(MAP) - 1:
-            F.after(2, self.auto_move)
+        if self.grid_y < len(MAP) - 1 and self.life > 0:
+            F.after(10, self.auto_move)
 
     def analyse_direction(self):
         """Analyse les changements potentiels de direction"""
@@ -177,6 +179,71 @@ class Monster():
         else:
             LIST_OF_MONSTERS.remove(self)
             DEAD_MONSTERS.append(self)
+
+class Defender():
+    """Création d'un nouveau défenseur"""
+    # pylint: disable=too-many-instance-attributes
+    def __init__(self, grid_x, grid_y):
+        self.width = BLOC_SIZE / 2
+        self.height = BLOC_SIZE / 2
+        self.center_x = grid_x * BLOC_SIZE + BLOC_SIZE / 2
+        self.center_y = grid_y * BLOC_SIZE + BLOC_SIZE / 2
+        self.pos_x = self.center_x - self.width / 2
+        self.pos_y = self.center_y - self.height / 2
+        self.target = None
+        self.range = BLOC_SIZE * 2
+        self.color = "black"
+        self.body = [
+            CANVAS.create_rectangle(
+                self.pos_x,
+                self.pos_y,
+                self.pos_x + self.width / 2,
+                self.pos_y + self.height / 2,
+                fill=self.color
+            ),
+            CANVAS.create_rectangle(
+                self.pos_x + self.width / 2,
+                self.pos_y + self.height / 2,
+                self.pos_x + self.width,
+                self.pos_y + self.height,
+                fill=self.color
+            )
+        ]
+        c_x = self.center_x
+        c_y = self.center_y
+        s_r = self.range
+        CANVAS.create_oval(c_x-s_r, c_y-s_r, c_x+s_r, c_y+s_r, outline="blue")
+
+        LIST_OF_DEFENDERS.append(self)
+        self.auto_attack()
+
+    def auto_attack(self):
+        """Gestion de l'auto-attaque des défenseurs"""
+        if self.target is None:
+            min_distance = None
+            for monster in LIST_OF_MONSTERS:
+                delta_x_carre = (monster.pos_x - self.center_x) ** 2
+                delta_y_carre = (monster.pos_y - self.center_y) ** 2
+                distance = (delta_x_carre + delta_y_carre) ** 0.5
+                if distance <= self.range and (min_distance is None or min_distance > distance):
+                    min_distance = distance
+                    self.target = monster
+            F.after(10, self.auto_attack)
+        else:
+            delta_x_carre = (self.target.pos_x - self.center_x) ** 2
+            delta_y_carre = (self.target.pos_y - self.center_y) ** 2
+            distance = (delta_x_carre + delta_y_carre) ** 0.5
+            if distance > self.range:
+                self.target = None
+                F.after(10, self.auto_attack)
+            else:
+                self.target.life -= 1
+                print("tir, target life: ", self.target.life)
+                if self.target.life == 0:
+                    LIST_OF_MONSTERS.remove(self.target)
+                    self.target = None
+                    print("target dead")
+                F.after(1000, self.auto_attack)
 
 # Paramètres
 # 0: chemin pour les enemies
@@ -211,6 +278,8 @@ LEFT = (-1, 0)
 RIGHT = (1, 0)
 WAVE_SIZE = 20
 DEAD_MONSTERS = []
+
+LIST_OF_DEFENDERS = []
 
 # Création de la fenêtre et des canvas
 F = Tk()
