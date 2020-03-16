@@ -9,48 +9,93 @@ def main():
 
 def click_event(event):
     """Détection du clique de la souris sur le canvas de jeu"""
+    clean_canvas_option()
     pos_grid_x = int(event.x / BLOC_SIZE)
     pos_grid_y = int(event.y / BLOC_SIZE)
     value_cell = MAP[pos_grid_y][pos_grid_x]
-    if  value_cell == "x":
+    if  value_cell in ("x", 1):
         create_options(pos_grid_x, pos_grid_y, value_cell)
+
+def clean_canvas_option():
+    """Supprime tous les boutons du canvas options"""
+    children = CAN_OPTIONS.winfo_children()
+    for child in children:
+        child.destroy()
 
 def create_options(pos_x, pos_y, code_cell):
     """Affiche les options possibles suite à un clic sur une case du jeu"""
+    # La taille du bouton dépend du caractère du bouton, ici un texte (pour l'instant)
+    # Donc la taille ne correspond pas à la taille d'un bloc
     if code_cell == "x":
-        my_btn = Button(
+        btn_remove_obstacle = Button(
             CAN_OPTIONS,
             text="del obstacle",
             command=lambda: remove_obstacle(pos_x, pos_y))
-        # La taille du bouton dépend du caractère du bouton, ici un texte (pour l'instant)
-        #Donc la taille ne correspond pas à la taille d'un bloc
-        my_btn.config(width=7, height=4)
-        my_btn.pack()
+        btn_remove_obstacle.config(width=7, height=4)
+        btn_remove_obstacle.place(x=0, y=0)
+    elif code_cell == 1:
+        btn_defender = Button(
+            CAN_OPTIONS,
+            text="DEF 1",
+            command=lambda: create_defender(pos_x, pos_y))
+        btn_defender.config(width=7, height=4)
+        btn_defender.place(x=0, y=0)
+
 
 def remove_obstacle(grid_x, grid_y):
     """Suppression de l'obstacle, conversion en case classique"""
     print('Suppression obstacle en position: x=', grid_x, " y=", grid_y)
+    MAP[grid_y][grid_x] = 1
+    creation_bloc(grid_x, grid_y)
+    clean_canvas_option()
+
+def create_defender(grid_x, grid_y):
+    """Création d'un défenseur contre les ennemis"""
+    MAP[grid_y][grid_x] = 2
+    creation_bloc(grid_x, grid_y)
+    clean_canvas_option()
 
 def creation_map():
     """Création de la carte du jeu selon la constante MAP"""
     for pos_y, line in enumerate(MAP):
-        for pos_x, value in enumerate(line):
-            if value == 0:
-                CANVAS.create_rectangle(
-                    pos_x * BLOC_SIZE,
-                    pos_y * BLOC_SIZE,
-                    (pos_x+1) * BLOC_SIZE,
-                    (pos_y+1) * BLOC_SIZE,
-                    fill="red"
-                )
-            if value == "x":
-                CANVAS.create_rectangle(
-                    pos_x * BLOC_SIZE,
-                    pos_y * BLOC_SIZE,
-                    (pos_x+1) * BLOC_SIZE,
-                    (pos_y+1) * BLOC_SIZE,
-                    fill="black"
-                )
+        for pos_x in range(len(line)):
+            creation_bloc(pos_x, pos_y)
+
+def creation_bloc(grid_x, grid_y):
+    """Création de chaque bloc constituant la carte"""
+    value = MAP[grid_y][grid_x]
+    if value == 0:
+        CANVAS.create_rectangle(
+            grid_x * BLOC_SIZE,
+            grid_y * BLOC_SIZE,
+            (grid_x+1) * BLOC_SIZE,
+            (grid_y+1) * BLOC_SIZE,
+            fill="white"
+        )
+    elif value == 1:
+        CANVAS.create_rectangle(
+            grid_x * BLOC_SIZE,
+            grid_y * BLOC_SIZE,
+            (grid_x+1) * BLOC_SIZE,
+            (grid_y+1) * BLOC_SIZE,
+            fill="green"
+        )
+    elif value == 2:
+        CANVAS.create_rectangle(
+            grid_x * BLOC_SIZE,
+            grid_y * BLOC_SIZE,
+            (grid_x+1) * BLOC_SIZE,
+            (grid_y+1) * BLOC_SIZE,
+            fill="red"
+        )
+    elif value == "x":
+        CANVAS.create_rectangle(
+            grid_x * BLOC_SIZE,
+            grid_y * BLOC_SIZE,
+            (grid_x+1) * BLOC_SIZE,
+            (grid_y+1) * BLOC_SIZE,
+            fill="black"
+        )
 
 def creation_monster(list_of_monsters):
     """Création du premier monstre et donc de la vague"""
@@ -157,11 +202,11 @@ MAP = [
     [1, 1, 1, 1, 1, 0, 1, 1, 1, 1, 1],
     [0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0],
     [0, 1, 1, 1, 1, 1, 1, 1, 1, 1, 0],
-    [0, 1, "x", "x", 1, 0, 1, "x", "x", 1, 0],
+    [0, 1, "x", "x", 1, "x", 1, "x", "x", 1, 0],
     [0, 1, 1, 1, 1, 1, 1, 1, 1, 1, 0],
     [0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0],
     [0, 1, 1, 1, 1, 1, 1, 1, 1, 1, 0],
-    [0, 1, "x", "x", 1, 0, 1, "x", "x", 1, 0],
+    [0, 1, "x", "x", 1, "x", 1, "x", "x", 1, 0],
     [0, 1, 1, 1, 1, 1, 1, 1, 1, 1, 0],
     [0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0],
     [1, 1, 1, 1, 1, 0, 1, 1, 1, 1, 1]
@@ -190,10 +235,8 @@ CANVAS = Canvas(F, width=SCREEN_WIDTH-OPTIONS_WIDTH, height=SCREEN_HEIGHT)
 CANVAS.bind("<Button-1>", click_event)
 CANVAS.place(x=0, y=0)
 
-CAN_OPTIONS = Canvas(F, width=OPTIONS_WIDTH, height=SCREEN_HEIGHT)
+CAN_OPTIONS = Canvas(F, width=OPTIONS_WIDTH, height=SCREEN_HEIGHT, bg="black")
 CAN_OPTIONS.place(x=SCREEN_WIDTH-OPTIONS_WIDTH, y=0)
 
-
 main()
-
 F.mainloop()
