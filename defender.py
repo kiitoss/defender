@@ -62,7 +62,7 @@ def creation_defender(code, grid_x, grid_y):
         MAP[grid_y][grid_x] = 2
         creation_bloc(grid_x, grid_y)
         clean_canvas_option()
-        Defender(grid_x, grid_y)
+        Farmer(grid_x, grid_y)
         upgrade_stats()
 
 def creation_map():
@@ -239,9 +239,13 @@ class Monster():
 class Defender():
     """Création d'un nouveau défenseur"""
     # pylint: disable=too-many-instance-attributes
-    def __init__(self, grid_x, grid_y):
-        self.width = BLOC_SIZE / 2
-        self.height = BLOC_SIZE / 2
+    def __init__(self, grid_x, grid_y, defender):
+        self.width = defender.width
+        self.height = defender.height
+        self.range = defender.range_defender
+        self.price = defender.price
+        self.color = defender.color
+
         self.center_x = grid_x * BLOC_SIZE + BLOC_SIZE / 2
         self.center_y = grid_y * BLOC_SIZE + BLOC_SIZE / 2
         self.pos_x = self.center_x - self.width / 2
@@ -249,46 +253,12 @@ class Defender():
         self.target = None
         self.missile = None
         self.missile_coord = []
-        self.range = BLOC_SIZE * 2
-        self.price = PRICE_DEFENDERS[0]
-        self.color = "black"
-        self.body = [
-            CANVAS.create_rectangle(
-                self.pos_x + self.width / 4,
-                self.pos_y,
-                self.pos_x + 3 * self.width / 4,
-                self.pos_y + self.height / 4,
-                fill=self.color
-            ),
-            CANVAS.create_rectangle(
-                self.pos_x + self.width/ 8,
-                self.pos_y + self.height / 4,
-                self.pos_x + 7 * self.width / 8,
-                self.pos_y + self.height,
-                fill=self.color
-            ),
-            CANVAS.create_rectangle(
-                self.pos_x,
-                self.pos_y + 3 * self.height / 8,
-                self.pos_x + self.width / 8,
-                self.pos_y + self.height,
-                fill=self.color
-            ),
-            CANVAS.create_rectangle(
-                self.pos_x + 7 * self.width / 8,
-                self.pos_y + 3 * self.height / 8,
-                self.pos_x + self.width,
-                self.pos_y + self.height,
-                fill=self.color
-            )
-        ]
         c_x = self.center_x
         c_y = self.center_y
         s_r = self.range
         CANVAS.create_oval(c_x-s_r, c_y-s_r, c_x+s_r, c_y+s_r, outline="green")
 
         LIST_OF_DEFENDERS.append(self)
-        self.auto_attack()
 
     def auto_attack(self):
         """Gestion de l'auto-attaque des défenseurs"""
@@ -373,6 +343,49 @@ class Defender():
             F.after(1000, self.auto_attack)
         else:
             F.after(1, self.attack)
+
+class Farmer(Defender):
+    """Premier défenseur: le fermier"""
+    def __init__(self, grid_x, grid_y):
+        self.width = BLOC_SIZE / 2
+        self.height = BLOC_SIZE / 2
+        self.range_defender = BLOC_SIZE * 2
+        self.price = PRICE_DEFENDERS[0]
+        self.color = "black"
+
+        super().__init__(grid_x, grid_y, self)
+
+        self.body = [
+            CANVAS.create_rectangle(
+                self.pos_x + self.width / 4,
+                self.pos_y,
+                self.pos_x + 3 * self.width / 4,
+                self.pos_y + self.height / 4,
+                fill=self.color
+            ),
+            CANVAS.create_rectangle(
+                self.pos_x + self.width/ 8,
+                self.pos_y + self.height / 4,
+                self.pos_x + 7 * self.width / 8,
+                self.pos_y + self.height,
+                fill=self.color
+            ),
+            CANVAS.create_rectangle(
+                self.pos_x,
+                self.pos_y + 3 * self.height / 8,
+                self.pos_x + self.width / 8,
+                self.pos_y + self.height,
+                fill=self.color
+            ),
+            CANVAS.create_rectangle(
+                self.pos_x + 7 * self.width / 8,
+                self.pos_y + 3 * self.height / 8,
+                self.pos_x + self.width,
+                self.pos_y + self.height,
+                fill=self.color
+            )
+        ]
+        super().auto_attack()
 
 # Paramètres
 # 0: chemin pour les enemies
