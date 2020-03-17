@@ -2,6 +2,7 @@
 from tkinter import Tk, Canvas, Button, Label
 import random
 import sys
+import bodies
 
 def main():
     """Fonction principale"""
@@ -40,12 +41,19 @@ def create_options(pos_x, pos_y, code_cell):
         btn_remove_obstacle.config(width=7, height=4)
         btn_remove_obstacle.place(x=0, y=0)
     elif code_cell == 1:
-        btn_defender = Button(
+        btn_defender_first = Button(
             CAN_OPTIONS,
             text="DEF 1",
             command=lambda: creation_defender(0, pos_x, pos_y))
-        btn_defender.config(width=7, height=4)
-        btn_defender.place(x=0, y=0)
+        btn_defender_first.config(width=7, height=4)
+        btn_defender_first.place(x=0, y=0)
+
+        btn_defender_second = Button(
+            CAN_OPTIONS,
+            text="DEF 2",
+            command=lambda: creation_defender(1, pos_x, pos_y))
+        btn_defender_second.config(width=7, height=4)
+        btn_defender_second.place(x=0, y=BLOC_SIZE)
 
 
 def remove_obstacle(grid_x, grid_y):
@@ -57,12 +65,13 @@ def remove_obstacle(grid_x, grid_y):
 
 def creation_defender(code, grid_x, grid_y):
     """Création d'un défenseur contre les ennemis"""
-    if PLAYER.get("GOLD") >= PRICE_DEFENDERS[code]:
-        PLAYER["GOLD"] -= PRICE_DEFENDERS[code]
+    price = DEFENDERS[code].get("price")
+    if PLAYER.get("GOLD") >= price:
+        PLAYER["GOLD"] -= price
         MAP[grid_y][grid_x] = 2
         creation_bloc(grid_x, grid_y)
         clean_canvas_option()
-        Farmer(grid_x, grid_y)
+        Defender(code, grid_x, grid_y)
         upgrade_stats()
 
 def creation_map():
@@ -92,60 +101,37 @@ def creation_bloc(grid_x, grid_y):
         fill=color
     )
 
-def creation_wave(code=None):
+def creation_wave(code, click=None):
     """Création de la vague d'ennemies"""
-    if code is not None:
+    if click is not None:
         PLAYER["WAVE_RUNNING"] += 1
     if len(LIST_OF_MONSTERS) == 0:
         B_START_WAVE.config(text="Vague suivante")
     if len(LIST_OF_MONSTERS) + len(DEAD_MONSTERS) < WAVE_SIZE * PLAYER.get("WAVE_RUNNING"):
-        Monster()
-        F.after(1000, creation_wave)
+        Monster(code)
+        F.after(MONSTERS[code].get("wait"), lambda: creation_wave(code))
+
+def run_wave():
+    """Lance la création de la vague d'ennemis lors du clique"""
+    type_wave = random.randrange(len(MONSTERS))
+    creation_wave(type_wave, 1)
 
 class Monster():
     """Création d'un nouveau monstre"""
     # pylint: disable=too-many-instance-attributes
-    def __init__(self):
-        self.width = BLOC_SIZE / 2
-        self.height = BLOC_SIZE / 2
+    def __init__(self, code):
+        monster = MONSTERS[code]
+        self.width = monster.get("width")
+        self.height = monster.get("height")
         self.pos_x = int(len(MAP) / 2) * BLOC_SIZE + BLOC_SIZE / 2 - self.width / 2
         self.pos_y = 0
         self.grid_x = int(len(MAP) / 2)
         self.grid_y = 0
-        self.color = "blue"
-        self.body = [
-            CANVAS.create_rectangle(
-                self.pos_x + self.width / 4,
-                self.pos_y,
-                self.pos_x + 3 * self.width / 4,
-                self.pos_y + self.height / 4,
-                fill=self.color
-            ),
-            CANVAS.create_rectangle(
-                self.pos_x + self.width/ 8,
-                self.pos_y + self.height / 4,
-                self.pos_x + 7 * self.width / 8,
-                self.pos_y + self.height,
-                fill=self.color
-            ),
-            CANVAS.create_rectangle(
-                self.pos_x,
-                self.pos_y + 3 * self.height / 8,
-                self.pos_x + self.width / 8,
-                self.pos_y + self.height,
-                fill=self.color
-            ),
-            CANVAS.create_rectangle(
-                self.pos_x + 7 * self.width / 8,
-                self.pos_y + 3 * self.height / 8,
-                self.pos_x + self.width,
-                self.pos_y + self.height,
-                fill=self.color
-            )
-        ]
-        self.life = 3
-        self.gold = 20
-        self.score = 15
+        self.color = monster.get("color")
+        self.body = bodies.body_creation_monster(code, CANVAS, self)
+        self.life = monster.get("life")
+        self.gold = monster.get("gold")
+        self.score = monster.get("score")
         self.direction = DOWN
 
         LIST_OF_MONSTERS.append(self)
@@ -158,15 +144,15 @@ class Monster():
 
     def auto_move(self):
         """Analyse les chemins possible et déplace le monstre"""
-        middle_y_monster = int(self.pos_y + self.height / 2)
+        middle_y_monster = int(self.pos_y + self.height / 2) - 1
         middle_y_bloc = int(self.grid_y * BLOC_SIZE + BLOC_SIZE / 2)
-        middle_x_monster = self.pos_x + self.width / 2
+        middle_x_monster = self.pos_x + self.width / 2 - 1
         middle_x_bloc = self.grid_x * BLOC_SIZE + BLOC_SIZE / 2
         direction = self.direction
 
-        if direction == DOWN and middle_y_monster == middle_y_bloc:
+        if direction == DOWN and int(middle_y_monster) == int(middle_y_bloc):
             self.analyse_direction()
-        elif (direction in (LEFT, RIGHT) and middle_x_monster == middle_x_bloc):
+        elif direction in (LEFT, RIGHT) and int(middle_x_monster) == int(middle_x_bloc):
             self.analyse_direction()
 
         self.pos_x += self.direction[0]
@@ -232,19 +218,19 @@ class Monster():
                 available_position = [DOWN]
             else:
                 available_position.append(DOWN)
-
         if coord_y < len(MAP) - 1:
             self.direction = available_position[random.randrange(len(available_position))]
 
 class Defender():
     """Création d'un nouveau défenseur"""
     # pylint: disable=too-many-instance-attributes
-    def __init__(self, grid_x, grid_y, defender):
-        self.width = defender.width
-        self.height = defender.height
-        self.range = defender.range_defender
-        self.price = defender.price
-        self.color = defender.color
+    def __init__(self, code, grid_x, grid_y):
+        defender = DEFENDERS[code]
+        self.width = defender.get("width")
+        self.height = defender.get("height")
+        self.range = defender.get("range")
+        self.price = defender.get("price")
+        self.color = defender.get("color")
 
         self.center_x = grid_x * BLOC_SIZE + BLOC_SIZE / 2
         self.center_y = grid_y * BLOC_SIZE + BLOC_SIZE / 2
@@ -258,7 +244,11 @@ class Defender():
         s_r = self.range
         CANVAS.create_oval(c_x-s_r, c_y-s_r, c_x+s_r, c_y+s_r, outline="green")
 
+        self.body = bodies.body_creation_defender(code, CANVAS, self)
+
         LIST_OF_DEFENDERS.append(self)
+
+        self.auto_attack()
 
     def auto_attack(self):
         """Gestion de l'auto-attaque des défenseurs"""
@@ -344,49 +334,6 @@ class Defender():
         else:
             F.after(1, self.attack)
 
-class Farmer(Defender):
-    """Premier défenseur: le fermier"""
-    def __init__(self, grid_x, grid_y):
-        self.width = BLOC_SIZE / 2
-        self.height = BLOC_SIZE / 2
-        self.range_defender = BLOC_SIZE * 2
-        self.price = PRICE_DEFENDERS[0]
-        self.color = "black"
-
-        super().__init__(grid_x, grid_y, self)
-
-        self.body = [
-            CANVAS.create_rectangle(
-                self.pos_x + self.width / 4,
-                self.pos_y,
-                self.pos_x + 3 * self.width / 4,
-                self.pos_y + self.height / 4,
-                fill=self.color
-            ),
-            CANVAS.create_rectangle(
-                self.pos_x + self.width/ 8,
-                self.pos_y + self.height / 4,
-                self.pos_x + 7 * self.width / 8,
-                self.pos_y + self.height,
-                fill=self.color
-            ),
-            CANVAS.create_rectangle(
-                self.pos_x,
-                self.pos_y + 3 * self.height / 8,
-                self.pos_x + self.width / 8,
-                self.pos_y + self.height,
-                fill=self.color
-            ),
-            CANVAS.create_rectangle(
-                self.pos_x + 7 * self.width / 8,
-                self.pos_y + 3 * self.height / 8,
-                self.pos_x + self.width,
-                self.pos_y + self.height,
-                fill=self.color
-            )
-        ]
-        super().auto_attack()
-
 # Paramètres
 # 0: chemin pour les enemies
 # 1: case vide
@@ -410,13 +357,57 @@ BLOC_SIZE = 80
 PLAYER = {
     "GOLD": 200,
     "SCORE": 0,
-    "LIFE": 1,
+    "LIFE": 1000,
     "MONSTER_KILLED": 0,
     "WAVE_RUNNING": 0
 }
 PRICE_DEFENDERS = [100]
 LENGTH_OPTIONS = 1
 LENGTH_STATS = 5
+
+DEFENDERS = [
+    # DEFENDER 1
+    {
+        "width": BLOC_SIZE / 2,
+        "height": BLOC_SIZE / 2,
+        "range": BLOC_SIZE * 2,
+        "price": 100,
+        "color": "black"
+    },
+
+    # DEFENDER 2
+    {
+        "width": BLOC_SIZE,
+        "height": BLOC_SIZE,
+        "range": BLOC_SIZE * 3,
+        "price": 200,
+        "color": "blue"
+    }
+]
+
+MONSTERS = [
+    # MONSTER 1
+    {
+        "width": BLOC_SIZE / 2,
+        "height": BLOC_SIZE / 2,
+        "color": "blue",
+        "life": 3,
+        "gold": 20,
+        "score": 15,
+        "wait": 1000
+    },
+
+    # MONSTER 2
+    {
+        "width": BLOC_SIZE,
+        "height": BLOC_SIZE,
+        "color": "blue",
+        "life": 5,
+        "gold": 40,
+        "score": 30,
+        "wait": 2000
+    }
+]
 
 # Création des variables selon les paramètres originaux
 STATS_WIDTH = LENGTH_STATS * BLOC_SIZE
@@ -446,7 +437,7 @@ CAN_OPTIONS.place(x=SCREEN_WIDTH-STATS_WIDTH-OPTIONS_WIDTH, y=0)
 
 CAN_STATS = Canvas(F, width=STATS_WIDTH, height=SCREEN_HEIGHT, bg="black")
 CAN_STATS.place(x=SCREEN_WIDTH-STATS_WIDTH, y=0)
-B_START_WAVE = Button(CAN_STATS, text="Lancer la vague", command=lambda: creation_wave(1))
+B_START_WAVE = Button(CAN_STATS, text="Lancer la vague", command=run_wave)
 B_START_WAVE.place(x=15, y=15)
 L_WAVE_RUN = Label(CAN_STATS, text="Avancée de la vague: 0/"+str(WAVE_SIZE), bg="black", fg="white")
 L_WAVE_RUN.place(x=15, y=45)
