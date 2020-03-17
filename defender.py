@@ -155,7 +155,13 @@ class Monster():
                 creation_monster(LIST_OF_MONSTERS)
 
         if self.grid_y < len(MAP) - 1 and self.life > 0:
-            F.after(10, self.auto_move)
+            F.after(20, self.auto_move)
+        else:
+            LIST_OF_MONSTERS.remove(self)
+            DEAD_MONSTERS.append(self)
+            for body_part in self.body:
+                CANVAS.delete(body_part)
+            print("target dead")
 
     def analyse_direction(self):
         """Analyse les changements potentiels de direction"""
@@ -176,9 +182,6 @@ class Monster():
 
         if coord_y < len(MAP) - 1:
             self.direction = available_position[random.randrange(len(available_position))]
-        else:
-            LIST_OF_MONSTERS.remove(self)
-            DEAD_MONSTERS.append(self)
 
 class Defender():
     """Création d'un nouveau défenseur"""
@@ -222,27 +225,45 @@ class Defender():
         if self.target is None:
             min_distance = None
             for monster in LIST_OF_MONSTERS:
-                delta_x_carre = (monster.pos_x - self.center_x) ** 2
-                delta_y_carre = (monster.pos_y - self.center_y) ** 2
-                distance = (delta_x_carre + delta_y_carre) ** 0.5
-                if distance <= self.range and (min_distance is None or min_distance > distance):
+                delta_x_left_carre = (monster.pos_x - self.center_x) ** 2
+                delta_x_right_carre = (monster.pos_x + monster.width - self.center_x) ** 2
+                delta_y_top_carre = (monster.pos_y - self.center_y) ** 2
+                delta_y_bot_carre = (monster.pos_y + monster.height - self.center_y) ** 2
+                d_top_left = (delta_x_left_carre + delta_y_top_carre) ** 0.5
+                d_top_right = (delta_x_right_carre + delta_y_top_carre) ** 0.5
+                d_bot_left = (delta_x_left_carre + delta_y_bot_carre) ** 0.5
+                d_bot_right = (delta_x_right_carre + delta_y_bot_carre) ** 0.5
+
+                distance = d_top_left
+                for element in [d_top_right, d_bot_left, d_bot_right]:
+                    if element < distance:
+                        distance = element
+                if  distance <= self.range and (min_distance is None or min_distance > distance):
                     min_distance = distance
                     self.target = monster
             F.after(10, self.auto_attack)
         else:
-            delta_x_carre = (self.target.pos_x - self.center_x) ** 2
-            delta_y_carre = (self.target.pos_y - self.center_y) ** 2
-            distance = (delta_x_carre + delta_y_carre) ** 0.5
+            delta_x_left_carre = (self.target.pos_x - self.center_x) ** 2
+            delta_x_right_carre = (self.target.pos_x + self.target.width - self.center_x) ** 2
+            delta_y_top_carre = (self.target.pos_y - self.center_y) ** 2
+            delta_y_bot_carre = (self.target.pos_y + self.target.height - self.center_y) ** 2
+            d_top_left = (delta_x_left_carre + delta_y_top_carre) ** 0.5
+            d_top_right = (delta_x_right_carre + delta_y_top_carre) ** 0.5
+            d_bot_left = (delta_x_left_carre + delta_y_bot_carre) ** 0.5
+            d_bot_right = (delta_x_right_carre + delta_y_bot_carre) ** 0.5
+
+            distance = d_top_left
+            for element in [d_top_right, d_bot_left, d_bot_right]:
+                if element < distance:
+                    distance = element
             if distance > self.range:
                 self.target = None
                 F.after(10, self.auto_attack)
             else:
-                self.target.life -= 1
-                print("tir, target life: ", self.target.life)
-                if self.target.life == 0:
-                    LIST_OF_MONSTERS.remove(self.target)
+                if self.target.life > 0:
+                    self.target.life -= 1
+                else:
                     self.target = None
-                    print("target dead")
                 F.after(1000, self.auto_attack)
 
 # Paramètres
