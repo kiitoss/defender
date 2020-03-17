@@ -103,15 +103,29 @@ class Monster():
         self.color = "blue"
         self.body = [
             CANVAS.create_rectangle(
-                self.pos_x,
+                self.pos_x + self.width / 4,
                 self.pos_y,
-                self.pos_x + self.width / 2,
-                self.pos_y + self.height / 2,
+                self.pos_x + 3 * self.width / 4,
+                self.pos_y + self.height / 4,
                 fill=self.color
             ),
             CANVAS.create_rectangle(
-                self.pos_x + self.width / 2,
-                self.pos_y + self.height / 2,
+                self.pos_x + self.width/ 8,
+                self.pos_y + self.height / 4,
+                self.pos_x + 7 * self.width / 8,
+                self.pos_y + self.height,
+                fill=self.color
+            ),
+            CANVAS.create_rectangle(
+                self.pos_x,
+                self.pos_y + 3 * self.height / 8,
+                self.pos_x + self.width / 8,
+                self.pos_y + self.height,
+                fill=self.color
+            ),
+            CANVAS.create_rectangle(
+                self.pos_x + 7 * self.width / 8,
+                self.pos_y + 3 * self.height / 8,
                 self.pos_x + self.width,
                 self.pos_y + self.height,
                 fill=self.color
@@ -198,15 +212,29 @@ class Defender():
         self.color = "black"
         self.body = [
             CANVAS.create_rectangle(
-                self.pos_x,
+                self.pos_x + self.width / 4,
                 self.pos_y,
-                self.pos_x + self.width / 2,
-                self.pos_y + self.height / 2,
+                self.pos_x + 3 * self.width / 4,
+                self.pos_y + self.height / 4,
                 fill=self.color
             ),
             CANVAS.create_rectangle(
-                self.pos_x + self.width / 2,
-                self.pos_y + self.height / 2,
+                self.pos_x + self.width/ 8,
+                self.pos_y + self.height / 4,
+                self.pos_x + 7 * self.width / 8,
+                self.pos_y + self.height,
+                fill=self.color
+            ),
+            CANVAS.create_rectangle(
+                self.pos_x,
+                self.pos_y + 3 * self.height / 8,
+                self.pos_x + self.width / 8,
+                self.pos_y + self.height,
+                fill=self.color
+            ),
+            CANVAS.create_rectangle(
+                self.pos_x + 7 * self.width / 8,
+                self.pos_y + 3 * self.height / 8,
                 self.pos_x + self.width,
                 self.pos_y + self.height,
                 fill=self.color
@@ -223,7 +251,6 @@ class Defender():
     def auto_attack(self):
         """Gestion de l'auto-attaque des défenseurs"""
         if self.target is None:
-            min_distance = None
             for monster in LIST_OF_MONSTERS:
                 delta_x_left_carre = (monster.pos_x - self.center_x) ** 2
                 delta_x_right_carre = (monster.pos_x + monster.width - self.center_x) ** 2
@@ -238,9 +265,10 @@ class Defender():
                 for element in [d_top_right, d_bot_left, d_bot_right]:
                     if element < distance:
                         distance = element
-                if  distance <= self.range and (min_distance is None or min_distance > distance):
-                    min_distance = distance
+
+                if  distance <= self.range:
                     self.target = monster
+                    break
             F.after(10, self.auto_attack)
         else:
             delta_x_left_carre = (self.target.pos_x - self.center_x) ** 2
@@ -262,6 +290,7 @@ class Defender():
             else:
                 if self.target.life > 0:
                     self.target.life -= 1
+                    print("tir, target life: ", self.target.life)
                 else:
                     self.target = None
                 F.after(1000, self.auto_attack)
