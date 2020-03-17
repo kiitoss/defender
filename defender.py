@@ -1,11 +1,11 @@
 """Utilisation de tkinter pour l'interface graphique"""
 from tkinter import Tk, Canvas, Button, Label
 import random
+import sys
 
 def main():
     """Fonction principale"""
     creation_map()
-    creation_monster(LIST_OF_MONSTERS)
 
 def click_event(event):
     """Détection du clique de la souris sur le canvas de jeu"""
@@ -20,6 +20,7 @@ def upgrade_stats():
     """Mise à jour des statistiques du joueur"""
     L_GOLD.config(text="Or: "+str(PLAYER.get("GOLD")))
     L_SCORE.config(text="Score: "+str(PLAYER.get("SCORE")))
+    L_LIFE.config(text="Vies: "+str(PLAYER.get("LIFE")))
 
 def clean_canvas_option():
     """Supprime tous les boutons du canvas options"""
@@ -42,7 +43,7 @@ def create_options(pos_x, pos_y, code_cell):
         btn_defender = Button(
             CAN_OPTIONS,
             text="DEF 1",
-            command=lambda: create_defender(pos_x, pos_y))
+            command=lambda: creation_defender(0, pos_x, pos_y))
         btn_defender.config(width=7, height=4)
         btn_defender.place(x=0, y=0)
 
@@ -54,12 +55,15 @@ def remove_obstacle(grid_x, grid_y):
     creation_bloc(grid_x, grid_y)
     clean_canvas_option()
 
-def create_defender(grid_x, grid_y):
+def creation_defender(code, grid_x, grid_y):
     """Création d'un défenseur contre les ennemis"""
-    MAP[grid_y][grid_x] = 2
-    creation_bloc(grid_x, grid_y)
-    clean_canvas_option()
-    Defender(grid_x, grid_y)
+    if PLAYER.get("GOLD") >= PRICE_DEFENDERS[code]:
+        PLAYER["GOLD"] -= PRICE_DEFENDERS[code]
+        MAP[grid_y][grid_x] = 2
+        creation_bloc(grid_x, grid_y)
+        clean_canvas_option()
+        Defender(grid_x, grid_y)
+        upgrade_stats()
 
 def creation_map():
     """Création de la carte du jeu selon la constante MAP"""
@@ -88,12 +92,15 @@ def creation_bloc(grid_x, grid_y):
         fill=color
     )
 
-def creation_monster(list_of_monsters):
-    """Création du premier monstre et donc de la vague"""
-    if list_of_monsters is None:
-        list_of_monsters = []
-
-    Monster()
+def creation_wave(code=None):
+    """Création de la vague d'ennemies"""
+    if code is not None:
+        PLAYER["WAVE_RUNNING"] += 1
+    if len(LIST_OF_MONSTERS) == 0:
+        B_START_WAVE.config(text="Vague suivante")
+    if len(LIST_OF_MONSTERS) + len(DEAD_MONSTERS) < WAVE_SIZE * PLAYER.get("WAVE_RUNNING"):
+        Monster()
+        F.after(1000, creation_wave)
 
 class Monster():
     """Création d'un nouveau monstre"""
@@ -136,14 +143,15 @@ class Monster():
                 fill=self.color
             )
         ]
-        self.life = 4
-        self.gold = 30
+        self.life = 3
+        self.gold = 20
         self.score = 15
         self.direction = DOWN
 
         LIST_OF_MONSTERS.append(self)
-        wave_run = len(LIST_OF_MONSTERS)+len(DEAD_MONSTERS)
-        L_WAVE_RUN.config(text="Avancée de la vague: "+str(wave_run)+"/"+str(WAVE_SIZE))
+        wave_run = str(len(LIST_OF_MONSTERS)+len(DEAD_MONSTERS))
+        wave_max = str(WAVE_SIZE * PLAYER.get("WAVE_RUNNING"))
+        L_WAVE_RUN.config(text="Avancée de la vague: "+wave_run+"/"+wave_max)
 
         self.auto_move()
 
@@ -166,6 +174,15 @@ class Monster():
         for body_part in self.body:
             CANVAS.move(body_part, self.direction[0], self.direction[1])
 
+        self.adapt_on_grid()
+
+        if self.grid_y < len(MAP) - 1 and self.life > 0:
+            F.after(20, self.auto_move)
+        else:
+            self.auto_kill()
+
+    def adapt_on_grid(self):
+        """Check sur quelles positions de la grille se trouve l'ennemie"""
         if self.pos_x > (self.grid_x + 1) * BLOC_SIZE:
             self.grid_x += 1
         if self.pos_x < self.grid_x * BLOC_SIZE:
@@ -173,21 +190,31 @@ class Monster():
         if self.pos_y > (self.grid_y + 1) * BLOC_SIZE:
             self.grid_y += 1
 
-        if LIST_OF_MONSTERS[-1] == self:
-            if self.pos_y > self.height and len(LIST_OF_MONSTERS + DEAD_MONSTERS) < WAVE_SIZE:
-                creation_monster(LIST_OF_MONSTERS)
-
-        if self.grid_y < len(MAP) - 1 and self.life > 0:
-            F.after(20, self.auto_move)
-        else:
+    def auto_kill(self):
+        """Auto-détruit l'objet Monster"""
+        if self.life <= 0:
             PLAYER["GOLD"] += self.gold
             PLAYER["SCORE"] += self.score
-            LIST_OF_MONSTERS.remove(self)
-            DEAD_MONSTERS.append(self)
-            for body_part in self.body:
-                CANVAS.delete(body_part)
-            print("target dead")
+            PLAYER["MONSTER_KILLED"] += 1
+            L_MONSTER_KILLED.config(text="Monstres tués: "+str(PLAYER.get("MONSTER_KILLED")))
+        else:
+            PLAYER["LIFE"] -= 1
             upgrade_stats()
+            if PLAYER["LIFE"] == 0:
+                print("Défaite")
+                sys.exit()
+
+        LIST_OF_MONSTERS.remove(self)
+        DEAD_MONSTERS.append(self)
+        for body_part in self.body:
+            CANVAS.delete(body_part)
+
+        if len(LIST_OF_MONSTERS) == 0:
+            DEAD_MONSTERS[:] = []
+            PLAYER["WAVE_RUNNING"] = 0
+            B_START_WAVE.config(text="Lancer la vague")
+            L_WAVE_RUN.config(text="Avancée de la vague: 0/"+str(WAVE_SIZE))
+        upgrade_stats()
 
     def analyse_direction(self):
         """Analyse les changements potentiels de direction"""
@@ -223,6 +250,7 @@ class Defender():
         self.missile = None
         self.missile_coord = []
         self.range = BLOC_SIZE * 2
+        self.price = PRICE_DEFENDERS[0]
         self.color = "black"
         self.body = [
             CANVAS.create_rectangle(
@@ -257,7 +285,7 @@ class Defender():
         c_x = self.center_x
         c_y = self.center_y
         s_r = self.range
-        CANVAS.create_oval(c_x-s_r, c_y-s_r, c_x+s_r, c_y+s_r, outline="blue")
+        CANVAS.create_oval(c_x-s_r, c_y-s_r, c_x+s_r, c_y+s_r, outline="green")
 
         LIST_OF_DEFENDERS.append(self)
         self.auto_attack()
@@ -340,7 +368,6 @@ class Defender():
 
         if touch_x and touch_y:
             self.target.life -= 1
-            print("tir, target life: ", self.target.life)
             CANVAS.delete(self.missile)
             self.missile = None
             F.after(1000, self.auto_attack)
@@ -368,9 +395,13 @@ MAP = [
 BLOC_SIZE = 80
 
 PLAYER = {
-    "GOLD": 1000,
-    "SCORE": 0
+    "GOLD": 200,
+    "SCORE": 0,
+    "LIFE": 1,
+    "MONSTER_KILLED": 0,
+    "WAVE_RUNNING": 0
 }
+PRICE_DEFENDERS = [100]
 LENGTH_OPTIONS = 1
 LENGTH_STATS = 5
 
@@ -402,12 +433,18 @@ CAN_OPTIONS.place(x=SCREEN_WIDTH-STATS_WIDTH-OPTIONS_WIDTH, y=0)
 
 CAN_STATS = Canvas(F, width=STATS_WIDTH, height=SCREEN_HEIGHT, bg="black")
 CAN_STATS.place(x=SCREEN_WIDTH-STATS_WIDTH, y=0)
-L_SCORE = Label(CAN_STATS, text="Score: "+str(PLAYER.get("SCORE")), bg="black", fg="white")
-L_SCORE.place(x=15, y=15)
+B_START_WAVE = Button(CAN_STATS, text="Lancer la vague", command=lambda: creation_wave(1))
+B_START_WAVE.place(x=15, y=15)
 L_WAVE_RUN = Label(CAN_STATS, text="Avancée de la vague: 0/"+str(WAVE_SIZE), bg="black", fg="white")
 L_WAVE_RUN.place(x=15, y=45)
+L_SCORE = Label(CAN_STATS, text="Score: "+str(PLAYER.get("SCORE")), bg="black", fg="white")
+L_SCORE.place(x=15, y=75)
 L_GOLD = Label(CAN_STATS, text="Or: "+str(PLAYER.get("GOLD")), bg="black", fg="white")
-L_GOLD.place(x=15, y=75)
+L_GOLD.place(x=15, y=105)
+L_MONSTER_KILLED = Label(CAN_STATS, text="Monstres Tués: 0", bg="black", fg="white")
+L_MONSTER_KILLED.place(x=15, y=135)
+L_LIFE = Label(CAN_STATS, text="Vies: "+str(PLAYER.get("LIFE")), bg="black", fg="white")
+L_LIFE.place(x=15, y=165)
 
 main()
 F.mainloop()
