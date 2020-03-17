@@ -1,5 +1,5 @@
 """Utilisation de tkinter pour l'interface graphique"""
-from tkinter import Tk, Canvas, Button
+from tkinter import Tk, Canvas, Button, Label
 import random
 
 def main():
@@ -15,6 +15,11 @@ def click_event(event):
     value_cell = MAP[pos_grid_y][pos_grid_x]
     if  value_cell in ("x", 1):
         create_options(pos_grid_x, pos_grid_y, value_cell)
+
+def upgrade_stats():
+    """Mise à jour des statistiques du joueur"""
+    L_GOLD.config(text="Or: "+str(PLAYER.get("GOLD")))
+    L_SCORE.config(text="Score: "+str(PLAYER.get("SCORE")))
 
 def clean_canvas_option():
     """Supprime tous les boutons du canvas options"""
@@ -132,9 +137,13 @@ class Monster():
             )
         ]
         self.life = 4
+        self.gold = 30
+        self.score = 15
         self.direction = DOWN
 
         LIST_OF_MONSTERS.append(self)
+        wave_run = len(LIST_OF_MONSTERS)+len(DEAD_MONSTERS)
+        L_WAVE_RUN.config(text="Avancée de la vague: "+str(wave_run)+"/"+str(WAVE_SIZE))
 
         self.auto_move()
 
@@ -171,11 +180,14 @@ class Monster():
         if self.grid_y < len(MAP) - 1 and self.life > 0:
             F.after(20, self.auto_move)
         else:
+            PLAYER["GOLD"] += self.gold
+            PLAYER["SCORE"] += self.score
             LIST_OF_MONSTERS.remove(self)
             DEAD_MONSTERS.append(self)
             for body_part in self.body:
                 CANVAS.delete(body_part)
             print("target dead")
+            upgrade_stats()
 
     def analyse_direction(self):
         """Analyse les changements potentiels de direction"""
@@ -208,6 +220,8 @@ class Defender():
         self.pos_x = self.center_x - self.width / 2
         self.pos_y = self.center_y - self.height / 2
         self.target = None
+        self.missile = None
+        self.missile_coord = []
         self.range = BLOC_SIZE * 2
         self.color = "black"
         self.body = [
@@ -289,11 +303,49 @@ class Defender():
                 F.after(10, self.auto_attack)
             else:
                 if self.target.life > 0:
-                    self.target.life -= 1
-                    print("tir, target life: ", self.target.life)
+                    self.attack()
                 else:
                     self.target = None
-                F.after(1000, self.auto_attack)
+                    F.after(10, self.auto_attack)
+
+    def attack(self):
+        """Gestion du missile lancé par le défenseur"""
+        touch_x = False
+        touch_y = False
+        if self.missile is None:
+            self.missile_coord = [self.center_x, self.center_y]
+        else:
+            CANVAS.delete(self.missile)
+            if self.missile_coord[0] < self.target.pos_x:
+                self.missile_coord[0] += 1
+            elif self.missile_coord[0] > self.target.pos_x:
+                self.missile_coord[0] -= 1
+            else:
+                touch_x = True
+
+            if self.missile_coord[1] < self.target.pos_y:
+                self.missile_coord[1] += 1
+            elif self.missile_coord[1] > self.target.pos_y:
+                self.missile_coord[1] -= 1
+            else:
+                touch_y = True
+
+        self.missile = CANVAS.create_rectangle(
+            self.missile_coord[0],
+            self.missile_coord[1],
+            self.missile_coord[0] + 10,
+            self.missile_coord[1] + 10,
+            fill="blue"
+        )
+
+        if touch_x and touch_y:
+            self.target.life -= 1
+            print("tir, target life: ", self.target.life)
+            CANVAS.delete(self.missile)
+            self.missile = None
+            F.after(1000, self.auto_attack)
+        else:
+            F.after(1, self.attack)
 
 # Paramètres
 # 0: chemin pour les enemies
@@ -314,33 +366,48 @@ MAP = [
     [1, 1, 1, 1, 1, 0, 1, 1, 1, 1, 1]
 ]
 BLOC_SIZE = 80
+
+PLAYER = {
+    "GOLD": 1000,
+    "SCORE": 0
+}
 LENGTH_OPTIONS = 1
+LENGTH_STATS = 5
 
 # Création des variables selon les paramètres originaux
+STATS_WIDTH = LENGTH_STATS * BLOC_SIZE
 OPTIONS_WIDTH = LENGTH_OPTIONS * BLOC_SIZE
-SCREEN_WIDTH = int((len(MAP[0]) + LENGTH_OPTIONS) * BLOC_SIZE)
+SCREEN_WIDTH = int((len(MAP[0]) + LENGTH_OPTIONS + LENGTH_STATS) * BLOC_SIZE)
 SCREEN_HEIGHT = int(len(MAP) * BLOC_SIZE)
 
 # Autres variables
-LIST_OF_MONSTERS = []
 DOWN = (0, 1)
 LEFT = (-1, 0)
 RIGHT = (1, 0)
+LIST_OF_MONSTERS = []
 WAVE_SIZE = 20
 DEAD_MONSTERS = []
-
 LIST_OF_DEFENDERS = []
 
 # Création de la fenêtre et des canvas
 F = Tk()
 F.geometry(str(SCREEN_WIDTH)+"x"+str(SCREEN_HEIGHT))
 
-CANVAS = Canvas(F, width=SCREEN_WIDTH-OPTIONS_WIDTH, height=SCREEN_HEIGHT)
+CANVAS = Canvas(F, width=SCREEN_WIDTH-STATS_WIDTH-OPTIONS_WIDTH, height=SCREEN_HEIGHT)
 CANVAS.bind("<Button-1>", click_event)
 CANVAS.place(x=0, y=0)
 
 CAN_OPTIONS = Canvas(F, width=OPTIONS_WIDTH, height=SCREEN_HEIGHT, bg="black")
-CAN_OPTIONS.place(x=SCREEN_WIDTH-OPTIONS_WIDTH, y=0)
+CAN_OPTIONS.place(x=SCREEN_WIDTH-STATS_WIDTH-OPTIONS_WIDTH, y=0)
+
+CAN_STATS = Canvas(F, width=STATS_WIDTH, height=SCREEN_HEIGHT, bg="black")
+CAN_STATS.place(x=SCREEN_WIDTH-STATS_WIDTH, y=0)
+L_SCORE = Label(CAN_STATS, text="Score: "+str(PLAYER.get("SCORE")), bg="black", fg="white")
+L_SCORE.place(x=15, y=15)
+L_WAVE_RUN = Label(CAN_STATS, text="Avancée de la vague: 0/"+str(WAVE_SIZE), bg="black", fg="white")
+L_WAVE_RUN.place(x=15, y=45)
+L_GOLD = Label(CAN_STATS, text="Or: "+str(PLAYER.get("GOLD")), bg="black", fg="white")
+L_GOLD.place(x=15, y=75)
 
 main()
 F.mainloop()
