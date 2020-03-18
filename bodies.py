@@ -2,7 +2,7 @@
 
 def body_creation_defender(canvas, item):
     """Créateur du corps des defenders"""
-    if item.code in (0, 1):
+    if item.code in (0, 1, 2):
         return [
             canvas.create_rectangle(
                 item.pos_x + item.width / 4,

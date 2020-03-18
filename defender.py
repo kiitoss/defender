@@ -29,6 +29,7 @@ def show_stats_defender(defender):
     """Affiche les statistiques relative au défenseur targetté"""
     L_DAMAGE.config(text="Attaque: "+str(defender.damages))
     L_RANGE.config(text="Range: "+str(defender.range))
+    L_SPEED.config(text="Fréquence de tir: "+str(defender.attack_speed))
     L_KILLED.config(text="Monstres tués: "+str(defender.monster_killed))
 
     SCREEN_ITEMS["DEFENDER_PRINT"] = defender
@@ -58,6 +59,7 @@ def clean_canvas_stat_defender():
     """Efface le canvas affichant les statistiques du défenseur targetté"""
     L_DAMAGE.config(text="")
     L_RANGE.config(text="")
+    L_SPEED.config(text="")
     L_KILLED.config(text="")
     SCREEN_ITEMS["STAT_DEFENDER_VISIBLE"] = False
     CANVAS.delete(SCREEN_ITEMS.get("RANGE_MONSTER"))
@@ -76,19 +78,14 @@ def create_options(pos_x, pos_y, code_cell):
         btn_remove_obstacle.config(width=7, height=4)
         btn_remove_obstacle.place(x=0, y=0)
     elif code_cell == 0:
-        btn_defender_first = Button(
-            CAN_OPTIONS,
-            text="DEF 1",
-            command=lambda: creation_defender(0, pos_x, pos_y))
-        btn_defender_first.config(width=7, height=4)
-        btn_defender_first.place(x=0, y=0)
-
-        btn_defender_second = Button(
-            CAN_OPTIONS,
-            text="DEF 2",
-            command=lambda: creation_defender(1, pos_x, pos_y))
-        btn_defender_second.config(width=7, height=4)
-        btn_defender_second.place(x=0, y=BLOC_SIZE)
+        for i in range(len(DEFENDERS)):
+            Button(
+                CAN_OPTIONS,
+                text="DEF "+str(i+1),
+                command=lambda code=i: creation_defender(code, pos_x, pos_y),
+                width=7,
+                height=4
+            ).place(x=0, y=i * BLOC_SIZE)
     elif code_cell > 0:
         my_defender = None
         for defender in LIST_OF_DEFENDERS:
@@ -118,6 +115,9 @@ def upgrade_defender(defender, upgrades):
         defender.damages += upgrades.get("upgrade_damages")
         defender.lvl += 1
         defender.range += upgrades.get("upgrade_range")
+        defender.attack_speed -= upgrades.get("upgrade_speed")
+        if defender.attack_speed < 1:
+            defender.attack_speed = 1
         clean_canvas_stat_defender()
         show_stats_defender(defender)
     else:
@@ -312,6 +312,7 @@ class Defender():
         self.price = defender.get("price")
         self.color = defender.get("color")
         self.damages = defender.get("damages")
+        self.attack_speed = defender.get("attack_speed")
 
         self.lvl = 1
         self.grid_x = grid_x
@@ -405,7 +406,7 @@ class Defender():
                     show_stats_defender(self)
             CANVAS.delete(self.missile)
             self.missile = None
-            F.after(1000, self.auto_attack)
+            F.after(self.attack_speed, self.auto_attack)
         else:
             F.after(1, self.attack)
 
@@ -478,13 +479,15 @@ DEFENDERS = [
         "height": BLOC_SIZE / 2,
         "damages": 1,
         "range": BLOC_SIZE * 2,
+        "attack_speed": 1000,
         "price": 100,
         "color": "black",
         "upgrades": [
             {
                 "price": 100,
                 "upgrade_range": BLOC_SIZE,
-                "upgrade_damages": 2
+                "upgrade_damages": 2,
+                "upgrade_speed": 100
             }
         ]
     },
@@ -495,13 +498,46 @@ DEFENDERS = [
         "height": BLOC_SIZE,
         "damages": 2,
         "range": BLOC_SIZE * 3,
+        "attack_speed": 1000,
         "price": 200,
         "color": "blue",
         "upgrades": [
             {
                 "price": 100,
                 "upgrade_range": BLOC_SIZE,
-                "upgrade_damages": 2
+                "upgrade_damages": 2,
+                "upgrade_speed": 100
+            }
+        ]
+    },
+
+    # DEFENDER 3
+    {
+        "width": BLOC_SIZE / 3,
+        "height": BLOC_SIZE / 3,
+        "damages": 1,
+        "range": BLOC_SIZE * 1,
+        "attack_speed": 100,
+        "price": 10,
+        "color": "purple",
+        "upgrades": [
+            {
+                "price": 10,
+                "upgrade_range": BLOC_SIZE,
+                "upgrade_damages": 2,
+                "upgrade_speed": 20
+            },
+            {
+                "price": 10,
+                "upgrade_range": BLOC_SIZE,
+                "upgrade_damages": 2,
+                "upgrade_speed": 20
+            },
+            {
+                "price": 10,
+                "upgrade_range": BLOC_SIZE,
+                "upgrade_damages": 2,
+                "upgrade_speed": 100
             }
         ]
     }
@@ -589,8 +625,10 @@ L_DAMAGE = Label(CAN_STATS_DEFENDER, text="", bg="black", fg="white")
 L_DAMAGE.place(x=15, y=15)
 L_RANGE = Label(CAN_STATS_DEFENDER, text="", bg="black", fg="white")
 L_RANGE.place(x=15, y=45)
+L_SPEED = Label(CAN_STATS_DEFENDER, text="", bg="black", fg="white")
+L_SPEED.place(x=15, y=75)
 L_KILLED = Label(CAN_STATS_DEFENDER, text="", bg="black", fg="white")
-L_KILLED.place(x=15, y=75)
+L_KILLED.place(x=15, y=105)
 
 main()
 F.mainloop()
