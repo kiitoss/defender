@@ -76,9 +76,10 @@ def draw_bloc(code, canvas, size, x_origin, y_origin):
 
     for pos_y, line in enumerate(bloc):
         for pos_x, value in enumerate(line):
-            color = list_colors[value]
             if code == 0:
                 color = list_colors[random.randrange(len(list_colors))]
+            else:
+                color = list_colors[value]
             bloc_pixel.append(
                 canvas.create_rectangle(
                     x_origin + pos_x * pixel_size,
@@ -94,102 +95,105 @@ def draw_bloc(code, canvas, size, x_origin, y_origin):
 def body_creation_defender(canvas, item):
     """Créateur du corps des defenders"""
     my_defender = []
-    if item.code in (0, 1):
-        patron = DEFENDERS.get("classique")
-        pixel_size = item.width / len(patron[0])
-        if item.code == 0:
-            list_colors = COLORS_DEFENDERS.get("blue")
-        elif item.code == 1:
-            list_colors = COLORS_DEFENDERS.get("red")
+    patron = DEFENDERS.get("classique")
+    pixel_size = item.width / len(patron[0])
+    if item.code == 0:
+        list_colors = COLORS_DEFENDERS.get("blue")
+    elif item.code == 1:
+        list_colors = COLORS_DEFENDERS.get("red")
+    elif item.code == 2:
+        list_colors = COLORS_DEFENDERS.get("yellow")
+    else:
+        return []
 
-        for pos_y, line in enumerate(patron):
-            for pos_x, value in enumerate(line):
-                my_defender.append(
-                    canvas.create_rectangle(
-                        item.pos_x + pos_x * pixel_size,
-                        item.pos_y + pos_y * pixel_size,
-                        item.pos_x + (pos_x+1) * pixel_size,
-                        item.pos_y + (pos_y+1) * pixel_size,
-                        fill=list_colors[value],
-                        outline=""
-                    )
+    for pos_y, line in enumerate(patron):
+        for pos_x, value in enumerate(line):
+            my_defender.append(
+                canvas.create_rectangle(
+                    item.pos_x + pos_x * pixel_size,
+                    item.pos_y + pos_y * pixel_size,
+                    item.pos_x + (pos_x+1) * pixel_size,
+                    item.pos_y + (pos_y+1) * pixel_size,
+                    fill=list_colors[value],
+                    outline=""
                 )
-        return my_defender
+            )
+    return my_defender
 
     # Sinon:
-    return [
-        canvas.create_rectangle(
-            item.pos_x + item.width / 4,
-            item.pos_y,
-            item.pos_x + 3 * item.width / 4,
-            item.pos_y + item.height / 4,
-            fill=item.color
-        ),
-        canvas.create_rectangle(
-            item.pos_x + item.width/ 8,
-            item.pos_y + item.height / 4,
-            item.pos_x + 7 * item.width / 8,
-            item.pos_y + item.height,
-            fill=item.color
-        ),
-        canvas.create_rectangle(
-            item.pos_x,
-            item.pos_y + 3 * item.height / 8,
-            item.pos_x + item.width / 8,
-            item.pos_y + item.height,
-            fill=item.color
-        ),
-        canvas.create_rectangle(
-            item.pos_x + 7 * item.width / 8,
-            item.pos_y + 3 * item.height / 8,
-            item.pos_x + item.width,
-            item.pos_y + item.height,
-            fill=item.color
-        )
-    ]
+    # return [
+    #     canvas.create_rectangle(
+    #         item.pos_x + item.width / 4,
+    #         item.pos_y,
+    #         item.pos_x + 3 * item.width / 4,
+    #         item.pos_y + item.height / 4,
+    #         fill=item.color
+    #     ),
+    #     canvas.create_rectangle(
+    #         item.pos_x + item.width/ 8,
+    #         item.pos_y + item.height / 4,
+    #         item.pos_x + 7 * item.width / 8,
+    #         item.pos_y + item.height,
+    #         fill=item.color
+    #     ),
+    #     canvas.create_rectangle(
+    #         item.pos_x,
+    #         item.pos_y + 3 * item.height / 8,
+    #         item.pos_x + item.width / 8,
+    #         item.pos_y + item.height,
+    #         fill=item.color
+    #     ),
+    #     canvas.create_rectangle(
+    #         item.pos_x + 7 * item.width / 8,
+    #         item.pos_y + 3 * item.height / 8,
+    #         item.pos_x + item.width,
+    #         item.pos_y + item.height,
+    #         fill=item.color
+    #     )
+    # ]
 
 
-def body_creation_monster(canvas, item):
-    """Créateur du corps des monstres"""
-    if item.code in (0, 1, 2):
-        return [
-            upgrade_life(canvas, item),
-            canvas.create_rectangle(
-                item.pos_x,
-                item.pos_y - 10,
-                item.pos_x + item.width,
-                item.pos_y - 5
-            ),
-            canvas.create_rectangle(
-                item.pos_x + item.width / 4,
-                item.pos_y,
-                item.pos_x + 3 * item.width / 4,
-                item.pos_y + item.height / 4,
-                fill=item.color
-            ),
-            canvas.create_rectangle(
-                item.pos_x + item.width/ 8,
-                item.pos_y + item.height / 4,
-                item.pos_x + 7 * item.width / 8,
-                item.pos_y + item.height,
-                fill=item.color
-            ),
-            canvas.create_rectangle(
-                item.pos_x,
-                item.pos_y + 3 * item.height / 8,
-                item.pos_x + item.width / 8,
-                item.pos_y + item.height,
-                fill=item.color
-            ),
-            canvas.create_rectangle(
-                item.pos_x + 7 * item.width / 8,
-                item.pos_y + 3 * item.height / 8,
-                item.pos_x + item.width,
-                item.pos_y + item.height,
-                fill=item.color
-            )
-        ]
-    return None
+# def body_creation_monster(canvas, item):
+#     """Créateur du corps des monstres"""
+#     if item.code in (0, 1, 2):
+#         return [
+#             upgrade_life(canvas, item),
+#             canvas.create_rectangle(
+#                 item.pos_x,
+#                 item.pos_y - 10,
+#                 item.pos_x + item.width,
+#                 item.pos_y - 5
+#             ),
+#             canvas.create_rectangle(
+#                 item.pos_x + item.width / 4,
+#                 item.pos_y,
+#                 item.pos_x + 3 * item.width / 4,
+#                 item.pos_y + item.height / 4,
+#                 fill=item.color
+#             ),
+#             canvas.create_rectangle(
+#                 item.pos_x + item.width/ 8,
+#                 item.pos_y + item.height / 4,
+#                 item.pos_x + 7 * item.width / 8,
+#                 item.pos_y + item.height,
+#                 fill=item.color
+#             ),
+#             canvas.create_rectangle(
+#                 item.pos_x,
+#                 item.pos_y + 3 * item.height / 8,
+#                 item.pos_x + item.width / 8,
+#                 item.pos_y + item.height,
+#                 fill=item.color
+#             ),
+#             canvas.create_rectangle(
+#                 item.pos_x + 7 * item.width / 8,
+#                 item.pos_y + 3 * item.height / 8,
+#                 item.pos_x + item.width,
+#                 item.pos_y + item.height,
+#                 fill=item.color
+#             )
+#         ]
+#     return None
 
 def upgrade_life(canvas, item):
     """Mise à jour de la jauge de vie des enemies"""
@@ -262,6 +266,18 @@ COLORS_DEFENDERS = {
         jaune(),
         bleu_fonce(),
         bleu_clair(),
+        noir(),
+        blanc(),
+        beige()
+    ],
+    "yellow": [
+        "",
+        jaune(),
+        jaune(),
+        marron(),
+        bleu_fonce(),
+        rouge(),
+        rouge(),
         noir(),
         blanc(),
         beige()

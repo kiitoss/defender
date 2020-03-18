@@ -1,5 +1,5 @@
 """Utilisation de tkinter pour l'interface graphique"""
-from tkinter import Tk, Canvas, Button, Label
+from tkinter import Tk, Canvas, Button, Label, PhotoImage
 import random
 import sys
 import design
@@ -191,10 +191,21 @@ class Monster():
         self.max_life = monster.get("life")
         self.life = self.max_life
         self.is_alive = True
-        self.body = design.body_creation_monster(CANVAS, self)
         self.gold = monster.get("gold")
         self.score = monster.get("score")
         self.direction = DOWN
+        self.max_frames = monster.get("frames_gif")
+        self.frames = [PhotoImage(
+            file='monster.gif',
+            format='gif -index %i' %(i)) for i in range(self.max_frames)]
+        self.frame = 0
+        self.image = CANVAS.create_image(
+            self.pos_x + self.width / 2,
+            self.pos_y + self.width / 2,
+            image=self.frames[self.frame]
+            )
+        self.life_bar = design.upgrade_life(CANVAS, self)
+        self.before_new_frame = 10
 
         LIST_OF_MONSTERS.append(self)
         wave_run = str(len(LIST_OF_MONSTERS)+len(DEAD_MONSTERS))
@@ -219,9 +230,15 @@ class Monster():
 
         self.pos_x += self.direction[0]
         self.pos_y += self.direction[1]
-        for body_part in self.body:
-            CANVAS.move(body_part, self.direction[0], self.direction[1])
-
+        self.before_new_frame -= 1
+        if self.before_new_frame == 0:
+            self.before_new_frame = 10
+            self.frame += 1
+            if self.frame >= self.max_frames:
+                self.frame = 0
+            CANVAS.itemconfig(self.image, image=self.frames[self.frame])
+        CANVAS.move(self.image, self.direction[0], self.direction[1])
+        CANVAS.move(self.life_bar, self.direction[0], self.direction[1])
         self.adapt_on_grid()
 
         if self.grid_y < len(MAP) - 1 and self.life > 0:
@@ -254,8 +271,8 @@ class Monster():
 
         LIST_OF_MONSTERS.remove(self)
         DEAD_MONSTERS.append(self)
-        for body_part in self.body:
-            CANVAS.delete(body_part)
+        CANVAS.delete(self.life_bar)
+        CANVAS.delete(self.image)
 
         monster_appeared = len(LIST_OF_MONSTERS) + len(DEAD_MONSTERS)
         full_wave_size = PLAYER.get("WAVE_RUNNING") * WAVE_SIZE
@@ -381,9 +398,9 @@ class Defender():
             else:
                 self.target.life -= self.damages
 
-            CANVAS.delete(self.target.body[0])
+            CANVAS.delete(self.target.life_bar)
             if self.target.life > 0:
-                self.target.body[0] = design.upgrade_life(CANVAS, self.target)
+                self.target.life_bar = design.upgrade_life(CANVAS, self.target)
             if self.target.life == 0 and self.target.is_alive:
                 self.monster_killed += 1
                 self.target.is_alive = False
@@ -436,7 +453,7 @@ MAP = [
     [-1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1],
     [0, 0, 0, 0, 0, -1, 0, 0, 0, 0, 0]
 ]
-BLOC_SIZE = 110
+BLOC_SIZE = 80
 
 PLAYER = {
     "GOLD": 20000,
@@ -460,8 +477,8 @@ PRICE_REMOVE_OBSTACLE = 2000
 DEFENDERS = [
     # DEFENDER 1
     {
-        "width": 80,
-        "height": 108,
+        "width": BLOC_SIZE / 1.35,
+        "height": BLOC_SIZE,
         "damages": 1,
         "range": BLOC_SIZE * 2,
         "attack_speed": 1000,
@@ -479,8 +496,8 @@ DEFENDERS = [
 
     # DEFENDER 2
     {
-        "width": 80,
-        "height": 108,
+        "width": BLOC_SIZE / 1.35,
+        "height": BLOC_SIZE,
         "damages": 2,
         "range": BLOC_SIZE * 3,
         "attack_speed": 1000,
@@ -531,35 +548,14 @@ DEFENDERS = [
 MONSTERS = [
     # MONSTER 1
     {
-        "width": BLOC_SIZE / 3,
-        "height": BLOC_SIZE / 3,
+        "width": 80,
+        "height": 80,
         "color": "red",
         "life": 2,
         "gold": 10,
         "score": 5,
-        "wait": 800
-    },
-
-    # MONSTER 2
-    {
-        "width": BLOC_SIZE / 2,
-        "height": BLOC_SIZE / 2,
-        "color": "blue",
-        "life": 3,
-        "gold": 20,
-        "score": 15,
-        "wait": 1000
-    },
-
-    # MONSTER 3
-    {
-        "width": BLOC_SIZE,
-        "height": BLOC_SIZE,
-        "color": "green",
-        "life": 5,
-        "gold": 40,
-        "score": 30,
-        "wait": 2000
+        "wait": 800,
+        "frames_gif": 9
     }
 ]
 
@@ -614,6 +610,19 @@ L_SPEED = Label(CAN_STATS_DEFENDER, text="", bg="black", fg="white")
 L_SPEED.place(x=15, y=75)
 L_KILLED = Label(CAN_STATS_DEFENDER, text="", bg="black", fg="white")
 L_KILLED.place(x=15, y=105)
+
+
+
+
+# scale_w = new_width/old_width
+# scale_h = new_height/old_height
+
+# NON FONCTIONNEL (affiche mais ne bouge pas)
+# CANVAS.pack(expand = YES, fill = BOTH)
+# scale_w = 2
+# scale_h = 2
+# img = PhotoImage(file="mon_image.gif").zoom(scale_w, scale_h)
+# CANVAS.create_image(10, 10, anchor=NW, image=img)
 
 main()
 F.mainloop()
