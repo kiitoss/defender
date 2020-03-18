@@ -14,7 +14,9 @@ def click_event(event):
     pos_grid_x = int(event.x / BLOC_SIZE)
     pos_grid_y = int(event.y / BLOC_SIZE)
     value_cell = MAP[pos_grid_y][pos_grid_x]
-    if  value_cell in ("x", 0, 1):
+    if  value_cell in ("x", -1, 0, 1):
+        clean_canvas_stat_defender()
+    if value_cell != -1:
         create_options(pos_grid_x, pos_grid_y, value_cell)
 
 def upgrade_stats():
@@ -23,11 +25,44 @@ def upgrade_stats():
     L_SCORE.config(text="Score: "+str(PLAYER.get("SCORE")))
     L_LIFE.config(text="Vies: "+str(PLAYER.get("LIFE")))
 
+def show_stats_defender(defender):
+    """Affiche les statistiques relative au défenseur targetté"""
+    L_DAMAGE.config(text="Attaque: "+str(defender.damages))
+    L_RANGE.config(text="Range: "+str(defender.range))
+    L_KILLED.config(text="Monstres tués: "+str(defender.monster_killed))
+
+    if SCREEN_ITEMS["STAT_DEFENDER_VISIBLE"] is False:
+        SCREEN_ITEMS["RANGE_MONSTER"] = CANVAS.create_oval(
+            defender.center_x-defender.range,
+            defender.center_y-defender.range,
+            defender.center_x+defender.range,
+            defender.center_y+defender.range,
+            width=3,
+            outline="green",
+            fill="green",
+            stipple="gray25"
+        )
+        for body_part in defender.body:
+            CANVAS.delete(body_part)
+        defender.body = bodies.body_creation_defender(CANVAS, defender)
+    SCREEN_ITEMS["STAT_DEFENDER_VISIBLE"] = True
+    SCREEN_ITEMS["DEFENDER_PRINT"] = defender
+
 def clean_canvas_option():
     """Supprime tous les boutons du canvas options"""
     children = CAN_OPTIONS.winfo_children()
     for child in children:
         child.destroy()
+
+def clean_canvas_stat_defender():
+    """Efface le canvas affichant les statistiques du défenseur targetté"""
+    L_DAMAGE.config(text="")
+    L_RANGE.config(text="")
+    L_KILLED.config(text="")
+    SCREEN_ITEMS["STAT_DEFENDER_VISIBLE"] = False
+    CANVAS.delete(SCREEN_ITEMS.get("RANGE_MONSTER"))
+    SCREEN_ITEMS["RANGE_MONSTER"] = None
+    SCREEN_ITEMS["DEFENDER_PRINT"] = None
 
 def create_options(pos_x, pos_y, code_cell):
     """Affiche les options possibles suite à un clic sur une case du jeu"""
@@ -73,22 +108,28 @@ def create_options(pos_x, pos_y, code_cell):
         btn_upgrade.config(width=7, height=4)
         btn_upgrade.place(x=0, y=0)
 
+        clean_canvas_stat_defender()
+        show_stats_defender(my_defender)
+
 def upgrade_defender(defender, upgrades):
     """Amélioration des défenseurs"""
     if PLAYER.get("GOLD") >= upgrades.get("price"):
         PLAYER["GOLD"] -= upgrades.get("price")
-        defender.range += upgrades.get("upgrade_range")
         defender.damages += upgrades.get("upgrade_damages")
         defender.lvl += 1
+        defender.range += upgrades.get("upgrade_range")
+        clean_canvas_stat_defender()
+        show_stats_defender(defender)
     else:
         print("Pas assez de gold")
     clean_canvas_option()
+    create_options(defender.grid_x, defender.grid_y, defender.lvl - 1)
 
 def remove_obstacle(grid_x, grid_y):
     """Suppression de l'obstacle, conversion en case classique"""
     if PLAYER.get("GOLD") >= PRICE_REMOVE_OBSTACLE:
         PLAYER["GOLD"] -= PRICE_REMOVE_OBSTACLE
-        MAP[grid_y][grid_x] = 1
+        MAP[grid_y][grid_x] = 0
         creation_bloc(grid_x, grid_y)
         clean_canvas_option()
         upgrade_stats()
@@ -150,6 +191,7 @@ class Monster():
     # pylint: disable=too-many-instance-attributes
     def __init__(self, code):
         monster = MONSTERS[code]
+        self.code = code
         self.width = monster.get("width")
         self.height = monster.get("height")
         self.pos_x = int(len(MAP) / 2) * BLOC_SIZE + BLOC_SIZE / 2 - self.width / 2
@@ -159,7 +201,8 @@ class Monster():
         self.color = monster.get("color")
         self.max_life = monster.get("life")
         self.life = self.max_life
-        self.body = bodies.body_creation_monster(code, CANVAS, self)
+        self.is_alive = True
+        self.body = bodies.body_creation_monster(CANVAS, self)
         self.gold = monster.get("gold")
         self.score = monster.get("score")
         self.direction = DOWN
@@ -277,12 +320,8 @@ class Defender():
         self.missile = None
         self.missile_coord = []
         self.monster_killed = 0
-        c_x = self.center_x
-        c_y = self.center_y
-        s_r = self.range
-        CANVAS.create_oval(c_x-s_r, c_y-s_r, c_x+s_r, c_y+s_r, outline="green")
 
-        self.body = bodies.body_creation_defender(code, CANVAS, self)
+        self.body = bodies.body_creation_defender(CANVAS, self)
 
         LIST_OF_DEFENDERS.append(self)
 
@@ -355,8 +394,11 @@ class Defender():
             CANVAS.delete(self.target.body[0])
             if self.target.life > 0:
                 self.target.body[0] = bodies.upgrade_life(CANVAS, self.target)
-            if self.target == 0:
+            if self.target.life == 0 and self.target.is_alive:
                 self.monster_killed += 1
+                self.target.is_alive = False
+                if SCREEN_ITEMS["DEFENDER_PRINT"] == self:
+                    show_stats_defender(self)
             CANVAS.delete(self.missile)
             self.missile = None
             F.after(1000, self.auto_attack)
@@ -412,6 +454,12 @@ PLAYER = {
     "LIFE": 1000,
     "MONSTER_KILLED": 0,
     "WAVE_RUNNING": 0
+}
+
+SCREEN_ITEMS = {
+    "STAT_DEFENDER_VISIBLE": False,
+    "RANGE_MONSTER": None,
+    "DEFENDER_PRINT": None
 }
 
 LENGTH_OPTIONS = 1
@@ -516,7 +564,7 @@ CANVAS.place(x=0, y=0)
 CAN_OPTIONS = Canvas(F, width=OPTIONS_WIDTH, height=SCREEN_HEIGHT, bg="black")
 CAN_OPTIONS.place(x=SCREEN_WIDTH-STATS_WIDTH-OPTIONS_WIDTH, y=0)
 
-CAN_STATS = Canvas(F, width=STATS_WIDTH, height=SCREEN_HEIGHT, bg="black")
+CAN_STATS = Canvas(F, width=STATS_WIDTH, height=SCREEN_HEIGHT / 2, bg="black")
 CAN_STATS.place(x=SCREEN_WIDTH-STATS_WIDTH, y=0)
 B_START_WAVE = Button(CAN_STATS, text="Lancer la vague", command=run_wave)
 B_START_WAVE.place(x=15, y=15)
@@ -530,6 +578,15 @@ L_MONSTER_KILLED = Label(CAN_STATS, text="Monstres Tués: 0", bg="black", fg="wh
 L_MONSTER_KILLED.place(x=15, y=135)
 L_LIFE = Label(CAN_STATS, text="Vies: "+str(PLAYER.get("LIFE")), bg="black", fg="white")
 L_LIFE.place(x=15, y=165)
+
+CAN_STATS_DEFENDER = Canvas(F, width=STATS_WIDTH, height=SCREEN_HEIGHT / 2, bg="black")
+CAN_STATS_DEFENDER.place(x=SCREEN_WIDTH-STATS_WIDTH, y=SCREEN_HEIGHT / 2)
+L_DAMAGE = Label(CAN_STATS_DEFENDER, text="", bg="black", fg="white")
+L_DAMAGE.place(x=15, y=15)
+L_RANGE = Label(CAN_STATS_DEFENDER, text="", bg="black", fg="white")
+L_RANGE.place(x=15, y=45)
+L_KILLED = Label(CAN_STATS_DEFENDER, text="", bg="black", fg="white")
+L_KILLED.place(x=15, y=75)
 
 main()
 F.mainloop()

@@ -1,8 +1,8 @@
 """Créateur des corps des différentes entitées du jeu"""
 
-def body_creation_defender(code, canvas, item):
+def body_creation_defender(canvas, item):
     """Créateur du corps des defenders"""
-    if code in (0, 1):
+    if item.code in (0, 1):
         return [
             canvas.create_rectangle(
                 item.pos_x + item.width / 4,
@@ -36,9 +36,9 @@ def body_creation_defender(code, canvas, item):
     return None
 
 
-def body_creation_monster(code, canvas, item):
+def body_creation_monster(canvas, item):
     """Créateur du corps des monstres"""
-    if code in (0, 1, 2):
+    if item.code in (0, 1, 2):
         return [
             upgrade_life(canvas, item),
             canvas.create_rectangle(
