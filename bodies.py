@@ -38,7 +38,7 @@ def body_creation_defender(code, canvas, item):
 
 def body_creation_monster(code, canvas, item):
     """Créateur du corps des monstres"""
-    if code in (0, 1):
+    if code in (0, 1, 2):
         return [
             upgrade_life(canvas, item),
             canvas.create_rectangle(
@@ -80,10 +80,17 @@ def body_creation_monster(code, canvas, item):
 
 def upgrade_life(canvas, item):
     """Mise à jour de la jauge de vie des enemies"""
+    if item.life <= item.max_life / 3:
+        color = "red"
+    elif item.life <= item.max_life / 2:
+        color = "orange"
+    else:
+        color = "green"
+
     return canvas.create_rectangle(
                 item.pos_x,
                 item.pos_y - 10,
                 item.pos_x + item.width * item.life / item.max_life,
                 item.pos_y - 5,
-                fill="green"
+                fill=color
                 )

@@ -14,7 +14,7 @@ def click_event(event):
     pos_grid_x = int(event.x / BLOC_SIZE)
     pos_grid_y = int(event.y / BLOC_SIZE)
     value_cell = MAP[pos_grid_y][pos_grid_x]
-    if  value_cell in ("x", 1):
+    if  value_cell in ("x", 0, 1):
         create_options(pos_grid_x, pos_grid_y, value_cell)
 
 def upgrade_stats():
@@ -40,7 +40,7 @@ def create_options(pos_x, pos_y, code_cell):
             command=lambda: remove_obstacle(pos_x, pos_y))
         btn_remove_obstacle.config(width=7, height=4)
         btn_remove_obstacle.place(x=0, y=0)
-    elif code_cell == 1:
+    elif code_cell == 0:
         btn_defender_first = Button(
             CAN_OPTIONS,
             text="DEF 1",
@@ -54,21 +54,51 @@ def create_options(pos_x, pos_y, code_cell):
             command=lambda: creation_defender(1, pos_x, pos_y))
         btn_defender_second.config(width=7, height=4)
         btn_defender_second.place(x=0, y=BLOC_SIZE)
+    elif code_cell > 0:
+        my_defender = None
+        for defender in LIST_OF_DEFENDERS:
+            if defender.grid_x == pos_x and defender.grid_y == pos_y:
+                my_defender = defender
+                break
 
+        upgrades = DEFENDERS[my_defender.code].get("upgrades")
+        if len(upgrades) >= my_defender.lvl:
+            my_upgrades = upgrades[my_defender.lvl - 1]
+            btn_upgrade = Button(
+                CAN_OPTIONS,
+                text="UPGRADE \n price: \n"+str(my_upgrades.get("price")),
+                command=lambda: upgrade_defender(my_defender, my_upgrades))
+        else:
+            btn_upgrade = Label(CAN_OPTIONS, text="LVL MAX")
+        btn_upgrade.config(width=7, height=4)
+        btn_upgrade.place(x=0, y=0)
+
+def upgrade_defender(defender, upgrades):
+    """Amélioration des défenseurs"""
+    if PLAYER.get("GOLD") >= upgrades.get("price"):
+        PLAYER["GOLD"] -= upgrades.get("price")
+        defender.range += upgrades.get("upgrade_range")
+        defender.damages += upgrades.get("upgrade_damages")
+        defender.lvl += 1
+    else:
+        print("Pas assez de gold")
+    clean_canvas_option()
 
 def remove_obstacle(grid_x, grid_y):
     """Suppression de l'obstacle, conversion en case classique"""
-    print('Suppression obstacle en position: x=', grid_x, " y=", grid_y)
-    MAP[grid_y][grid_x] = 1
-    creation_bloc(grid_x, grid_y)
-    clean_canvas_option()
+    if PLAYER.get("GOLD") >= PRICE_REMOVE_OBSTACLE:
+        PLAYER["GOLD"] -= PRICE_REMOVE_OBSTACLE
+        MAP[grid_y][grid_x] = 1
+        creation_bloc(grid_x, grid_y)
+        clean_canvas_option()
+        upgrade_stats()
 
 def creation_defender(code, grid_x, grid_y):
     """Création d'un défenseur contre les ennemis"""
     price = DEFENDERS[code].get("price")
     if PLAYER.get("GOLD") >= price:
         PLAYER["GOLD"] -= price
-        MAP[grid_y][grid_x] = 2
+        MAP[grid_y][grid_x] = 1
         creation_bloc(grid_x, grid_y)
         clean_canvas_option()
         Defender(code, grid_x, grid_y)
@@ -84,11 +114,11 @@ def creation_bloc(grid_x, grid_y):
     """Création de chaque bloc constituant la carte"""
     value = MAP[grid_y][grid_x]
     color = "white"
-    if value == 0:
+    if value == -1:
         color = "white"
-    elif value == 1:
+    elif value == 0:
         color = "green"
-    elif value == 2:
+    elif value == 1:
         color = "red"
     elif value == "x":
         color = "black"
@@ -105,7 +135,6 @@ def creation_wave(code, click=None):
     """Création de la vague d'ennemies"""
     if click is not None:
         PLAYER["WAVE_RUNNING"] += 1
-    if len(LIST_OF_MONSTERS) == 0:
         B_START_WAVE.config(text="Vague suivante")
     if len(LIST_OF_MONSTERS) + len(DEAD_MONSTERS) < WAVE_SIZE * PLAYER.get("WAVE_RUNNING"):
         Monster(code)
@@ -196,7 +225,9 @@ class Monster():
         for body_part in self.body:
             CANVAS.delete(body_part)
 
-        if len(LIST_OF_MONSTERS) == 0:
+        monster_appeared = len(LIST_OF_MONSTERS) + len(DEAD_MONSTERS)
+        full_wave_size = PLAYER.get("WAVE_RUNNING") * WAVE_SIZE
+        if len(LIST_OF_MONSTERS) == 0 and monster_appeared == full_wave_size:
             DEAD_MONSTERS[:] = []
             PLAYER["WAVE_RUNNING"] = 0
             B_START_WAVE.config(text="Lancer la vague")
@@ -210,11 +241,11 @@ class Monster():
         coord_y = self.grid_y
         direction = self.direction
 
-        if coord_x - 1 >= 0 and MAP[coord_y][coord_x - 1] == 0 and direction != RIGHT:
+        if coord_x - 1 >= 0 and MAP[coord_y][coord_x - 1] == -1 and direction != RIGHT:
             available_position.append(LEFT)
-        if coord_x + 1 < len(MAP[0]) and MAP[coord_y][coord_x + 1] == 0 and direction != LEFT:
+        if coord_x + 1 < len(MAP[0]) and MAP[coord_y][coord_x + 1] == -1 and direction != LEFT:
             available_position.append(RIGHT)
-        if coord_y + 1 < len(MAP) and MAP[coord_y + 1][coord_x] == 0:
+        if coord_y + 1 < len(MAP) and MAP[coord_y + 1][coord_x] == -1:
             if coord_y == len(MAP) - 2:
                 available_position = [DOWN]
             else:
@@ -227,12 +258,17 @@ class Defender():
     # pylint: disable=too-many-instance-attributes
     def __init__(self, code, grid_x, grid_y):
         defender = DEFENDERS[code]
+        self.code = code
         self.width = defender.get("width")
         self.height = defender.get("height")
         self.range = defender.get("range")
         self.price = defender.get("price")
         self.color = defender.get("color")
+        self.damages = defender.get("damages")
 
+        self.lvl = 1
+        self.grid_x = grid_x
+        self.grid_y = grid_y
         self.center_x = grid_x * BLOC_SIZE + BLOC_SIZE / 2
         self.center_y = grid_y * BLOC_SIZE + BLOC_SIZE / 2
         self.pos_x = self.center_x - self.width / 2
@@ -240,6 +276,7 @@ class Defender():
         self.target = None
         self.missile = None
         self.missile_coord = []
+        self.monster_killed = 0
         c_x = self.center_x
         c_y = self.center_y
         s_r = self.range
@@ -299,25 +336,7 @@ class Defender():
 
     def attack(self):
         """Gestion du missile lancé par le défenseur"""
-        touch_x = False
-        touch_y = False
-        if self.missile is None:
-            self.missile_coord = [self.center_x, self.center_y]
-        else:
-            CANVAS.delete(self.missile)
-            if self.missile_coord[0] < self.target.pos_x:
-                self.missile_coord[0] += 1
-            elif self.missile_coord[0] > self.target.pos_x:
-                self.missile_coord[0] -= 1
-            else:
-                touch_x = True
-
-            if self.missile_coord[1] < self.target.pos_y:
-                self.missile_coord[1] += 1
-            elif self.missile_coord[1] > self.target.pos_y:
-                self.missile_coord[1] -= 1
-            else:
-                touch_y = True
+        target_is_touched = self.move_missile()
 
         self.missile = CANVAS.create_rectangle(
             self.missile_coord[0],
@@ -327,70 +346,128 @@ class Defender():
             fill="blue"
         )
 
-        if touch_x and touch_y:
-            self.target.life -= 1
-            if self.target.life >= 0:
-                CANVAS.delete(self.target.body[0])
+        if target_is_touched:
+            if self.target.life - self.damages <= 0:
+                self.target.life = 0
+            else:
+                self.target.life -= self.damages
+
+            CANVAS.delete(self.target.body[0])
+            if self.target.life > 0:
                 self.target.body[0] = bodies.upgrade_life(CANVAS, self.target)
+            if self.target == 0:
+                self.monster_killed += 1
             CANVAS.delete(self.missile)
             self.missile = None
             F.after(1000, self.auto_attack)
         else:
             F.after(1, self.attack)
 
+    def move_missile(self):
+        """Avance le missile et renvoie True lorsque l'ennemie est touché"""
+        if self.missile is None:
+            self.missile_coord = [self.center_x, self.center_y]
+        else:
+            CANVAS.delete(self.missile)
+            if self.missile_coord[0] < self.target.pos_x:
+                self.missile_coord[0] += 1
+            elif self.missile_coord[0] > self.target.pos_x:
+                self.missile_coord[0] -= 1
+
+            if self.missile_coord[1] < self.target.pos_y:
+                self.missile_coord[1] += 1
+            elif self.missile_coord[1] > self.target.pos_y:
+                self.missile_coord[1] -= 1
+
+            if (self.missile_coord[0] >= self.target.pos_x) \
+                and (self.missile_coord[0] <= self.target.pos_x + self.target.width) \
+                and (self.missile_coord[1] >= self.target.pos_y) \
+                and (self.missile_coord[1] <= self.target.pos_y + self.target.height):
+                return True
+        return False
+
 # Paramètres
-# 0: chemin pour les enemies
-# 1: case vide
-# 2-9: défenseurs alliés
+# -1: chemin pour les enemies
+# 0: case vide
+# 1-9: défenseurs alliés
 # 'x': case objet à démolir avant de pouvoir construire
 MAP = [
-    [1, 1, 1, 1, 1, 0, 1, 1, 1, 1, 1],
-    [0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0],
-    [0, 1, 1, 1, 1, 1, 1, 1, 1, 1, 0],
-    [0, 1, "x", "x", 1, "x", 1, "x", "x", 1, 0],
-    [0, 1, 1, 1, 1, 1, 1, 1, 1, 1, 0],
-    [0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0],
-    [0, 1, 1, 1, 1, 1, 1, 1, 1, 1, 0],
-    [0, 1, "x", "x", 1, "x", 1, "x", "x", 1, 0],
-    [0, 1, 1, 1, 1, 1, 1, 1, 1, 1, 0],
-    [0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0],
-    [1, 1, 1, 1, 1, 0, 1, 1, 1, 1, 1]
+    [0, 0, 0, 0, 0, -1, 0, 0, 0, 0, 0],
+    [-1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1],
+    [-1, 0, 0, 0, 0, 0, 0, 0, 0, 0, -1],
+    [-1, 0, "x", "x", 0, "x", 0, "x", "x", 0, -1],
+    [-1, 0, 0, 0, 0, 0, 0, 0, 0, 0, -1],
+    [-1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1],
+    [-1, 0, 0, 0, 0, 0, 0, 0, 0, 0, -1],
+    [-1, 0, "x", "x", 0, "x", 0, "x", "x", 0, -1],
+    [-1, 0, 0, 0, 0, 0, 0, 0, 0, 0, -1],
+    [-1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1],
+    [0, 0, 0, 0, 0, -1, 0, 0, 0, 0, 0]
 ]
 BLOC_SIZE = 80
 
 PLAYER = {
-    "GOLD": 200,
+    "GOLD": 20000,
     "SCORE": 0,
     "LIFE": 1000,
     "MONSTER_KILLED": 0,
     "WAVE_RUNNING": 0
 }
-PRICE_DEFENDERS = [100]
+
 LENGTH_OPTIONS = 1
 LENGTH_STATS = 5
+
+PRICE_REMOVE_OBSTACLE = 2000
 
 DEFENDERS = [
     # DEFENDER 1
     {
         "width": BLOC_SIZE / 2,
         "height": BLOC_SIZE / 2,
+        "damages": 1,
         "range": BLOC_SIZE * 2,
         "price": 100,
-        "color": "black"
+        "color": "black",
+        "upgrades": [
+            {
+                "price": 100,
+                "upgrade_range": BLOC_SIZE,
+                "upgrade_damages": 2
+            }
+        ]
     },
 
     # DEFENDER 2
     {
         "width": BLOC_SIZE,
         "height": BLOC_SIZE,
+        "damages": 2,
         "range": BLOC_SIZE * 3,
         "price": 200,
-        "color": "blue"
+        "color": "blue",
+        "upgrades": [
+            {
+                "price": 100,
+                "upgrade_range": BLOC_SIZE,
+                "upgrade_damages": 2
+            }
+        ]
     }
 ]
 
 MONSTERS = [
     # MONSTER 1
+    {
+        "width": BLOC_SIZE / 3,
+        "height": BLOC_SIZE / 3,
+        "color": "red",
+        "life": 2,
+        "gold": 10,
+        "score": 5,
+        "wait": 800
+    },
+
+    # MONSTER 2
     {
         "width": BLOC_SIZE / 2,
         "height": BLOC_SIZE / 2,
@@ -401,11 +478,11 @@ MONSTERS = [
         "wait": 1000
     },
 
-    # MONSTER 2
+    # MONSTER 3
     {
         "width": BLOC_SIZE,
         "height": BLOC_SIZE,
-        "color": "blue",
+        "color": "green",
         "life": 5,
         "gold": 40,
         "score": 30,
