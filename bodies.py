@@ -40,6 +40,13 @@ def body_creation_monster(code, canvas, item):
     """Créateur du corps des monstres"""
     if code in (0, 1):
         return [
+            upgrade_life(canvas, item),
+            canvas.create_rectangle(
+                item.pos_x,
+                item.pos_y - 10,
+                item.pos_x + item.width,
+                item.pos_y - 5
+            ),
             canvas.create_rectangle(
                 item.pos_x + item.width / 4,
                 item.pos_y,
@@ -70,3 +77,13 @@ def body_creation_monster(code, canvas, item):
             )
         ]
     return None
+
+def upgrade_life(canvas, item):
+    """Mise à jour de la jauge de vie des enemies"""
+    return canvas.create_rectangle(
+                item.pos_x,
+                item.pos_y - 10,
+                item.pos_x + item.width * item.life / item.max_life,
+                item.pos_y - 5,
+                fill="green"
+                )

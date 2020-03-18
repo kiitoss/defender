@@ -128,8 +128,9 @@ class Monster():
         self.grid_x = int(len(MAP) / 2)
         self.grid_y = 0
         self.color = monster.get("color")
+        self.max_life = monster.get("life")
+        self.life = self.max_life
         self.body = bodies.body_creation_monster(code, CANVAS, self)
-        self.life = monster.get("life")
         self.gold = monster.get("gold")
         self.score = monster.get("score")
         self.direction = DOWN
@@ -328,6 +329,9 @@ class Defender():
 
         if touch_x and touch_y:
             self.target.life -= 1
+            if self.target.life >= 0:
+                CANVAS.delete(self.target.body[0])
+                self.target.body[0] = bodies.upgrade_life(CANVAS, self.target)
             CANVAS.delete(self.missile)
             self.missile = None
             F.after(1000, self.auto_attack)
