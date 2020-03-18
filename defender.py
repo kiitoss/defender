@@ -31,6 +31,7 @@ def show_stats_defender(defender):
     L_RANGE.config(text="Range: "+str(defender.range))
     L_KILLED.config(text="Monstres tués: "+str(defender.monster_killed))
 
+    SCREEN_ITEMS["DEFENDER_PRINT"] = defender
     if SCREEN_ITEMS["STAT_DEFENDER_VISIBLE"] is False:
         SCREEN_ITEMS["RANGE_MONSTER"] = CANVAS.create_oval(
             defender.center_x-defender.range,
@@ -40,13 +41,12 @@ def show_stats_defender(defender):
             width=3,
             outline="green",
             fill="green",
-            stipple="gray25"
+            stipple="gray25",
         )
-        for body_part in defender.body:
-            CANVAS.delete(body_part)
-        defender.body = bodies.body_creation_defender(CANVAS, defender)
+
+        for body_part in SCREEN_ITEMS.get("DEFENDER_PRINT").body:
+            CANVAS.tag_raise(body_part)
     SCREEN_ITEMS["STAT_DEFENDER_VISIBLE"] = True
-    SCREEN_ITEMS["DEFENDER_PRINT"] = defender
 
 def clean_canvas_option():
     """Supprime tous les boutons du canvas options"""
@@ -179,6 +179,10 @@ def creation_wave(code, click=None):
         B_START_WAVE.config(text="Vague suivante")
     if len(LIST_OF_MONSTERS) + len(DEAD_MONSTERS) < WAVE_SIZE * PLAYER.get("WAVE_RUNNING"):
         Monster(code)
+        if SCREEN_ITEMS["RANGE_MONSTER"] is not None:
+            CANVAS.tag_raise(SCREEN_ITEMS.get("RANGE_MONSTER"))
+            for body_part in SCREEN_ITEMS.get("DEFENDER_PRINT").body:
+                CANVAS.tag_raise(body_part)
         F.after(MONSTERS[code].get("wait"), lambda: creation_wave(code))
 
 def run_wave():
