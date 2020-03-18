@@ -2,7 +2,7 @@
 from tkinter import Tk, Canvas, Button, Label
 import random
 import sys
-import bodies
+import design
 
 def main():
     """Fonction principale"""
@@ -154,23 +154,8 @@ def creation_map():
 def creation_bloc(grid_x, grid_y):
     """Création de chaque bloc constituant la carte"""
     value = MAP[grid_y][grid_x]
-    color = "white"
-    if value == -1:
-        color = "white"
-    elif value == 0:
-        color = "green"
-    elif value == 1:
-        color = "red"
-    elif value == "x":
-        color = "black"
-
-    CANVAS.create_rectangle(
-        grid_x * BLOC_SIZE,
-        grid_y * BLOC_SIZE,
-        (grid_x+1) * BLOC_SIZE,
-        (grid_y+1) * BLOC_SIZE,
-        fill=color
-    )
+    if value in ("x", 0):
+        design.draw_bloc(value, CANVAS, BLOC_SIZE, grid_x * BLOC_SIZE, grid_y * BLOC_SIZE)
 
 def creation_wave(code, click=None):
     """Création de la vague d'ennemies"""
@@ -206,7 +191,7 @@ class Monster():
         self.max_life = monster.get("life")
         self.life = self.max_life
         self.is_alive = True
-        self.body = bodies.body_creation_monster(CANVAS, self)
+        self.body = design.body_creation_monster(CANVAS, self)
         self.gold = monster.get("gold")
         self.score = monster.get("score")
         self.direction = DOWN
@@ -326,7 +311,7 @@ class Defender():
         self.missile_coord = []
         self.monster_killed = 0
 
-        self.body = bodies.body_creation_defender(CANVAS, self)
+        self.body = design.body_creation_defender(CANVAS, self)
 
         LIST_OF_DEFENDERS.append(self)
 
@@ -398,7 +383,7 @@ class Defender():
 
             CANVAS.delete(self.target.body[0])
             if self.target.life > 0:
-                self.target.body[0] = bodies.upgrade_life(CANVAS, self.target)
+                self.target.body[0] = design.upgrade_life(CANVAS, self.target)
             if self.target.life == 0 and self.target.is_alive:
                 self.monster_killed += 1
                 self.target.is_alive = False
@@ -451,7 +436,7 @@ MAP = [
     [-1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1],
     [0, 0, 0, 0, 0, -1, 0, 0, 0, 0, 0]
 ]
-BLOC_SIZE = 80
+BLOC_SIZE = 110
 
 PLAYER = {
     "GOLD": 20000,
@@ -475,8 +460,8 @@ PRICE_REMOVE_OBSTACLE = 2000
 DEFENDERS = [
     # DEFENDER 1
     {
-        "width": BLOC_SIZE / 2,
-        "height": BLOC_SIZE / 2,
+        "width": 80,
+        "height": 108,
         "damages": 1,
         "range": BLOC_SIZE * 2,
         "attack_speed": 1000,
@@ -494,8 +479,8 @@ DEFENDERS = [
 
     # DEFENDER 2
     {
-        "width": BLOC_SIZE,
-        "height": BLOC_SIZE,
+        "width": 80,
+        "height": 108,
         "damages": 2,
         "range": BLOC_SIZE * 3,
         "attack_speed": 1000,
