@@ -110,20 +110,77 @@ def create_options(pos_x, pos_y, code_cell):
 
 def upgrade_defender(defender, upgrades):
     """Amélioration des défenseurs"""
-    if PLAYER.get("GOLD") >= upgrades.get("price"):
-        PLAYER["GOLD"] -= upgrades.get("price")
-        defender.damages += upgrades.get("upgrade_damages")
-        defender.lvl += 1
-        defender.range += upgrades.get("upgrade_range")
-        defender.attack_speed -= upgrades.get("upgrade_speed")
-        if defender.attack_speed < 1:
-            defender.attack_speed = 1
-        clean_canvas_stat_defender()
-        show_stats_defender(defender)
+    if PLAYER.get("GOLD") >= upgrades.get("price") \
+        and defender.monster_killed >= upgrades.get("min_dead"):
+        if upgrades.get("upgrade_ability") != 0:
+            defender_transformation(defender, upgrades)
+        else:
+            defender_lvl_up(defender, upgrades)
     else:
-        print("Pas assez de gold")
+        if PLAYER.get("GOLD") < upgrades.get("price"):
+            print("Pas assez de gold")
+        else:
+            print("pas assez tué de monstres")
+        clean_canvas_option()
+        create_options(defender.grid_x, defender.grid_y, defender.lvl - 1)
+
+def defender_lvl_up(defender, upgrades):
+    """Augmente le level des défenseurs"""
+    PLAYER["GOLD"] -= upgrades.get("price")
+    defender.damages += upgrades.get("upgrade_damages")
+    defender.lvl += 1
+    defender.range += upgrades.get("upgrade_range")
+    defender.attack_speed -= upgrades.get("upgrade_speed")
+    if defender.attack_speed < 1:
+        defender.attack_speed = 1
+    clean_canvas_stat_defender()
+    show_stats_defender(defender)
     clean_canvas_option()
     create_options(defender.grid_x, defender.grid_y, defender.lvl - 1)
+
+def defender_transformation(defender, upgrades):
+    """Donne le pouvoir au défenseur"""
+    clean_canvas_option()
+    lvl_ability = upgrades.get("upgrade_ability")
+    if lvl_ability == 1:
+        Button(
+            CAN_OPTIONS,
+            text="DEGAT",
+            command=lambda: transformation(defender, 0, upgrades),
+            width=7,
+            height=4
+        ).place(x=0, y=0)
+        Button(
+            CAN_OPTIONS,
+            text="GLACE",
+            command=lambda: transformation(defender, 1, upgrades),
+            width=7,
+            height=4
+        ).place(x=0, y=BLOC_SIZE)
+        Button(
+            CAN_OPTIONS,
+            text="POISON",
+            command=lambda: transformation(defender, 2, upgrades),
+            width=7,
+            height=4
+        ).place(x=0, y=BLOC_SIZE*2)
+    else:
+        if defender.ability == "attack":
+            defender.damages += lvl_ability * 100
+        defender.ability_lvl += 1
+        defender_lvl_up(defender, upgrades)
+
+def transformation(defender, code, upgrades):
+    """Donne le don au défenseur"""
+    if code == 0:
+        defender.ability = "attack"
+        defender.damages += 50
+    elif code == 1:
+        defender.ability = "freeze"
+    elif code == 2:
+        defender.ability = "poison"
+    defender.ability_lvl += 1
+    defender_lvl_up(defender, upgrades)
 
 def remove_obstacle(grid_x, grid_y):
     """Suppression de l'obstacle, conversion en case classique"""
@@ -168,7 +225,7 @@ def creation_wave(code, click=None):
             CANVAS.tag_raise(SCREEN_ITEMS.get("RANGE_MONSTER"))
             for body_part in SCREEN_ITEMS.get("DEFENDER_PRINT").body:
                 CANVAS.tag_raise(body_part)
-        F.after(MONSTERS[code].get("wait"), lambda: creation_wave(code))
+        F.after(MONSTERS[code].get("wait_before_new_creation"), lambda: creation_wave(code))
 
 def run_wave():
     """Lance la création de la vague d'ennemis lors du clique"""
@@ -193,6 +250,7 @@ class Monster():
         self.is_alive = True
         self.gold = monster.get("gold")
         self.score = monster.get("score")
+        self.wait_walk = monster.get("wait_loop_walk")
         self.direction = DOWN
         self.max_frames = monster.get("frames_gif")
         self.frames = [PhotoImage(
@@ -207,6 +265,10 @@ class Monster():
         self.life_bar = design.upgrade_life(CANVAS, self)
         self.before_new_frame = 10
 
+        self.time_freeze = 0
+        self.time_poison = 0
+        self.poisoner = None
+
         LIST_OF_MONSTERS.append(self)
         wave_run = str(len(LIST_OF_MONSTERS)+len(DEAD_MONSTERS))
         wave_max = str(WAVE_SIZE * PLAYER.get("WAVE_RUNNING"))
@@ -217,32 +279,51 @@ class Monster():
 
     def auto_move(self):
         """Analyse les chemins possible et déplace le monstre"""
-        middle_y_monster = int(self.pos_y + self.height / 2) - 1
-        middle_y_bloc = int(self.grid_y * BLOC_SIZE + BLOC_SIZE / 2)
-        middle_x_monster = self.pos_x + self.width / 2 - 1
-        middle_x_bloc = self.grid_x * BLOC_SIZE + BLOC_SIZE / 2
-        direction = self.direction
+        if self.time_freeze == 0:
+            middle_y_monster = int(self.pos_y + self.height / 2) - 1
+            middle_y_bloc = int(self.grid_y * BLOC_SIZE + BLOC_SIZE / 2)
+            middle_x_monster = self.pos_x + self.width / 2 - 1
+            middle_x_bloc = self.grid_x * BLOC_SIZE + BLOC_SIZE / 2
+            direction = self.direction
 
-        if direction == DOWN and int(middle_y_monster) == int(middle_y_bloc):
-            self.analyse_direction()
-        elif direction in (LEFT, RIGHT) and int(middle_x_monster) == int(middle_x_bloc):
-            self.analyse_direction()
+            if direction == DOWN and int(middle_y_monster) == int(middle_y_bloc):
+                self.analyse_direction()
+            elif direction in (LEFT, RIGHT) and int(middle_x_monster) == int(middle_x_bloc):
+                self.analyse_direction()
 
-        self.pos_x += self.direction[0]
-        self.pos_y += self.direction[1]
-        self.before_new_frame -= 1
-        if self.before_new_frame == 0:
-            self.before_new_frame = 10
-            self.frame += 1
-            if self.frame >= self.max_frames:
-                self.frame = 0
-            CANVAS.itemconfig(self.image, image=self.frames[self.frame])
-        CANVAS.move(self.image, self.direction[0], self.direction[1])
-        CANVAS.move(self.life_bar, self.direction[0], self.direction[1])
-        self.adapt_on_grid()
+            self.pos_x += self.direction[0]
+            self.pos_y += self.direction[1]
+            self.before_new_frame -= 1
+            if self.before_new_frame == 0:
+                self.before_new_frame = 10
+                self.frame += 1
+                if self.frame >= self.max_frames:
+                    self.frame = 0
+                CANVAS.itemconfig(self.image, image=self.frames[self.frame])
+            CANVAS.move(self.image, self.direction[0], self.direction[1])
+            CANVAS.move(self.life_bar, self.direction[0], self.direction[1])
+            self.adapt_on_grid()
+        else:
+            self.time_freeze -= self.wait_walk
+            if self.time_freeze < 0:
+                self.time_freeze = 0
+
+        if self.time_poison > 0:
+            self.life -= int((self.poisoner.damages/ self.poisoner.attack_speed) * (self.wait_walk))
+            CANVAS.delete(self.life_bar)
+            self.life_bar = design.upgrade_life(CANVAS, self)
+            if self.life <= 0 and self.is_alive:
+                self.poisoner.monster_killed += 1
+                CANVAS.delete(self.poisoner.missile)
+                self.poisoner.missile = None
+                self.is_alive = False
+                self.time_poison = 0
+            self.time_poison -= self.wait_walk
+            if self.time_poison < 0:
+                self.time_poison = 0
 
         if self.grid_y < len(MAP) - 1 and self.life > 0:
-            F.after(20, self.auto_move)
+            F.after(self.wait_walk, self.auto_move)
         else:
             self.auto_kill()
 
@@ -315,6 +396,9 @@ class Defender():
         self.color = defender.get("color")
         self.damages = defender.get("damages")
         self.attack_speed = defender.get("attack_speed")
+
+        self.ability = None
+        self.ability_lvl = 0
 
         self.lvl = 1
         self.grid_x = grid_x
@@ -397,6 +481,8 @@ class Defender():
                 self.target.life = 0
             else:
                 self.target.life -= self.damages
+                if self.ability_lvl > 0:
+                    self.run_ability()
 
             CANVAS.delete(self.target.life_bar)
             if self.target.life > 0:
@@ -411,6 +497,18 @@ class Defender():
             F.after(self.attack_speed, self.auto_attack)
         else:
             F.after(1, self.attack)
+
+    def run_ability(self):
+        """Lance le sort du défenseur"""
+        if random.randrange(100) < 10:
+            if self.ability == "poison" and self.target.time_poison == 0:
+                self.target.time_poison += 3000
+                if self.target.poisoner is None:
+                    self.target.poisoner = self
+                print("poison")
+            elif self.ability == "freeze" and self.target.time_freeze == 0:
+                self.target.time_freeze += 2000
+                print("freeze")
 
     def move_missile(self):
         """Avance le missile et renvoie True lorsque l'ennemie est touché"""
@@ -441,11 +539,11 @@ class Defender():
 # 1-9: défenseurs alliés
 # 'x': case objet à démolir avant de pouvoir construire
 MAP = [
-    [0, 0, 0, 0, 0, -1, 0, 0, 0, 0, 0],
+    [0, 0, 0, 0, "x", -1, "x", 0, 0, 0, 0],
     [-1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1],
-    [-1, 0, 0, 0, 0, 0, 0, 0, 0, 0, -1],
+    [-1, 0, 0, 0, "x", 0, "x", 0, 0, 0, -1],
     [-1, 0, "x", "x", 0, "x", 0, "x", "x", 0, -1],
-    [-1, 0, 0, 0, 0, 0, 0, 0, 0, 0, -1],
+    [-1, 0, 0, 0, "x", 0, "x", 0, 0, 0, -1],
     [-1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1],
     [-1, 0, 0, 0, 0, 0, 0, 0, 0, 0, -1],
     [-1, 0, "x", "x", 0, "x", 0, "x", "x", 0, -1],
@@ -456,9 +554,9 @@ MAP = [
 BLOC_SIZE = 80
 
 PLAYER = {
-    "GOLD": 20000,
+    "GOLD": 250000,
     "SCORE": 0,
-    "LIFE": 1000,
+    "LIFE": 100,
     "MONSTER_KILLED": 0,
     "WAVE_RUNNING": 0
 }
@@ -474,22 +572,69 @@ LENGTH_STATS = 5
 
 PRICE_REMOVE_OBSTACLE = 2000
 
+
+
+# Tarifs / point bonus:
+# 2 * attack:
+# 1 * range:
+# 1 * attack speed:
+
+# 40x + 100y = 100
+# attack: 2
+# range: 0.5
+# attack_speed:
+#   5000 - 1000: 0.05
+
 DEFENDERS = [
     # DEFENDER 1
     {
         "width": BLOC_SIZE / 1.35,
         "height": BLOC_SIZE,
-        "damages": 1,
-        "range": BLOC_SIZE * 2,
+        "damages": 20,
+        "range": BLOC_SIZE * 1.5,
         "attack_speed": 1000,
         "price": 100,
         "color": "black",
         "upgrades": [
             {
+                "price": 80,
+                "min_dead": 0,
+                "upgrade_range": BLOC_SIZE * 0.2,
+                "upgrade_damages": 10,
+                "upgrade_speed": 100,
+                "upgrade_ability": 0
+            },
+            {
                 "price": 100,
-                "upgrade_range": BLOC_SIZE,
-                "upgrade_damages": 2,
-                "upgrade_speed": 100
+                "min_dead": 0,
+                "upgrade_range": BLOC_SIZE * 0.2,
+                "upgrade_damages": 20,
+                "upgrade_speed": 100,
+                "upgrade_ability": 0
+            },
+            {
+                "price": 150,
+                "min_dead": 50,
+                "upgrade_range": BLOC_SIZE * 0.2,
+                "upgrade_damages": 50,
+                "upgrade_speed": 100,
+                "upgrade_ability": 1
+            },
+            {
+                "price": 250,
+                "min_dead": 0,
+                "upgrade_range": BLOC_SIZE * 0.5,
+                "upgrade_damages": 100,
+                "upgrade_speed": 150,
+                "upgrade_ability": 2
+            },
+            {
+                "price": 1000,
+                "min_dead": 200,
+                "upgrade_range": BLOC_SIZE * 0.5,
+                "upgrade_damages": 200,
+                "upgrade_speed": 150,
+                "upgrade_ability": 3
             }
         ]
     },
@@ -498,51 +643,49 @@ DEFENDERS = [
     {
         "width": BLOC_SIZE / 1.35,
         "height": BLOC_SIZE,
-        "damages": 2,
-        "range": BLOC_SIZE * 3,
+        "damages": 50,
+        "range": BLOC_SIZE * 2,
         "attack_speed": 1000,
-        "price": 200,
+        "price": 250,
         "color": "blue",
         "upgrades": [
             {
-                "price": 100,
-                "upgrade_range": BLOC_SIZE,
-                "upgrade_damages": 2,
+                "price": 200,
+                "min_dead": 0,
+                "upgrade_range": BLOC_SIZE * 0.2,
+                "upgrade_damages": 10,
                 "upgrade_speed": 100
+            },
+            {
+                "price": 250,
+                "min_dead": 0,
+                "upgrade_range": BLOC_SIZE * 0.2,
+                "upgrade_damages": 20,
+                "upgrade_speed": 100
+            },
+            {
+                "price": 350,
+                "min_dead": 50,
+                "upgrade_range": BLOC_SIZE * 0.2,
+                "upgrade_damages": 50,
+                "upgrade_speed": 100
+            },
+            {
+                "price": 500,
+                "min_dead": 0,
+                "upgrade_range": BLOC_SIZE * 0.5,
+                "upgrade_damages": 100,
+                "upgrade_speed": 150
+            },
+            {
+                "price": 2500,
+                "min_dead": 200,
+                "upgrade_range": BLOC_SIZE * 0.5,
+                "upgrade_damages": 200,
+                "upgrade_speed": 150
             }
         ]
     },
-
-    # DEFENDER 3
-    {
-        "width": BLOC_SIZE / 3,
-        "height": BLOC_SIZE / 3,
-        "damages": 1,
-        "range": BLOC_SIZE * 1,
-        "attack_speed": 100,
-        "price": 10,
-        "color": "purple",
-        "upgrades": [
-            {
-                "price": 10,
-                "upgrade_range": BLOC_SIZE,
-                "upgrade_damages": 2,
-                "upgrade_speed": 20
-            },
-            {
-                "price": 10,
-                "upgrade_range": BLOC_SIZE,
-                "upgrade_damages": 2,
-                "upgrade_speed": 20
-            },
-            {
-                "price": 10,
-                "upgrade_range": BLOC_SIZE,
-                "upgrade_damages": 2,
-                "upgrade_speed": 100
-            }
-        ]
-    }
 ]
 
 MONSTERS = [
@@ -551,10 +694,12 @@ MONSTERS = [
         "width": 80,
         "height": 80,
         "color": "red",
-        "life": 2,
-        "gold": 10,
+        # "life": 60,
+        "life": 1000,
+        "gold": 7,
         "score": 5,
-        "wait": 800,
+        "wait_before_new_creation": 2000,
+        "wait_loop_walk": 20,
         "frames_gif": 9
     }
 ]
@@ -570,7 +715,7 @@ DOWN = (0, 1)
 LEFT = (-1, 0)
 RIGHT = (1, 0)
 LIST_OF_MONSTERS = []
-WAVE_SIZE = 20
+WAVE_SIZE = 1
 DEAD_MONSTERS = []
 LIST_OF_DEFENDERS = []
 
