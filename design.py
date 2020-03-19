@@ -31,6 +31,12 @@ def blanc():
 def beige():
     """retourn la couleur beige"""
     return rgb_traductor((249, 192, 141))
+def grey():
+    """retourn la couleur gris"""
+    return "grey"
+def green():
+    """retourn la couleur vert"""
+    return "green"
 
 def draw_bloc(code, canvas, size, x_origin, y_origin):
     """Dessine les blocs du terrain"""
@@ -92,17 +98,22 @@ def draw_bloc(code, canvas, size, x_origin, y_origin):
             )
     return bloc_pixel
 
-def body_creation_defender(canvas, item):
+def body_creation_defender(canvas, item, code=None):
     """Créateur du corps des defenders"""
     my_defender = []
     patron = DEFENDERS.get("classique")
     pixel_size = item.width / len(patron[0])
-    if item.code == 0:
-        list_colors = COLORS_DEFENDERS.get("blue")
-    elif item.code == 1:
+    if code is None:
+        code = item.code
+
+    if code == 0:
+        list_colors = COLORS_DEFENDERS.get("grey")
+    elif code == 1:
         list_colors = COLORS_DEFENDERS.get("red")
-    elif item.code == 2:
-        list_colors = COLORS_DEFENDERS.get("yellow")
+    elif code == 2:
+        list_colors = COLORS_DEFENDERS.get("blue")
+    elif code == 3:
+        list_colors = COLORS_DEFENDERS.get("green")
     else:
         return []
 
@@ -246,6 +257,18 @@ DEFENDERS = {
 }
 
 COLORS_DEFENDERS = {
+    "grey": [
+        "",
+        grey(),
+        grey(),
+        marron(),
+        grey(),
+        grey(),
+        grey(),
+        noir(),
+        blanc(),
+        beige()
+    ],
     "blue": [
         "",
         bleu_clair(),
@@ -278,6 +301,18 @@ COLORS_DEFENDERS = {
         bleu_fonce(),
         rouge(),
         rouge(),
+        noir(),
+        blanc(),
+        beige()
+    ],
+    "green": [
+        "",
+        green(),
+        green(),
+        marron(),
+        green(),
+        green(),
+        green(),
         noir(),
         blanc(),
         beige()
