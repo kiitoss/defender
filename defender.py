@@ -17,6 +17,21 @@ def click_event(event):
     """Détection du clique de la souris sur le canvas de jeu"""
     pos_grid_x = int(event.x / BLOC_SIZE)
     pos_grid_y = int(event.y / BLOC_SIZE)
+    if GAME_MANAGER.get("case_shown") is not None:
+        CANVAS.delete(GAME_MANAGER.get("case_shown"))
+        GAME_MANAGER["case_shown"] = None
+
+    if MAP[pos_grid_y][pos_grid_x] in ("x", 0):
+        GAME_MANAGER["case_shown"] = CANVAS.create_rectangle(
+            pos_grid_x*BLOC_SIZE,
+            pos_grid_y*BLOC_SIZE,
+            (pos_grid_x+1)*BLOC_SIZE,
+            (pos_grid_y+1)*BLOC_SIZE,
+            width=3,
+            outline="black",
+            fill="black",
+            stipple="gray75",
+        )
     manager_canvas_request("creation", pos_grid_x, pos_grid_y)
 
 
@@ -91,24 +106,11 @@ def clean_canvas_request():
             GAME_MANAGER["range_shown"] = None
         GAME_MANAGER["defender_shown"] = None
 
-    if GAME_MANAGER.get("case_shown") is not None:
-        CANVAS.delete(GAME_MANAGER.get("case_shown"))
-        GAME_MANAGER["case_shown"] = None
     GAME_MANAGER["status_canvas_option"] = "clean"
 
 
 def show_all_defenders(pos_x, pos_y):
     """Affiche tous les défenseurs que le joueur peut acheter"""
-    GAME_MANAGER["case_shown"] = CANVAS.create_rectangle(
-        pos_x*BLOC_SIZE,
-        pos_y*BLOC_SIZE,
-        (pos_x+1)*BLOC_SIZE,
-        (pos_y+1)*BLOC_SIZE,
-        width=3,
-        outline="black",
-        fill="black",
-        stipple="gray75",
-    )
     for i in range(len(DEFENDERS)):
         btn_defender = Button(
             FRAME_REQUEST,
@@ -208,7 +210,7 @@ def show_remove_obstacle(pos_x, pos_y):
     col = (max_col-2.5) / 2
     btn_remove_obstacle = Button(
         FRAME_REQUEST,
-        text="del obstacle",
+        text="Supprimer obstacle:\nprix: "+str(GAME_MANAGER.get("price_remove_obstacle")),
         command=lambda: remove_obstacle(pos_x, pos_y))
     btn_remove_obstacle.config(width=21, height=4)
     btn_remove_obstacle.place(x=col*BLOC_SIZE, y=180)
@@ -219,6 +221,9 @@ def show_remove_obstacle(pos_x, pos_y):
 
 def creation_defender(code, grid_x, grid_y):
     """Création d'un défenseur"""
+    if GAME_MANAGER.get("case_shown") is not None:
+        CANVAS.delete(GAME_MANAGER.get("case_shown"))
+        GAME_MANAGER["case_shown"] = None
     price = DEFENDERS[code].get("price")
     if PLAYER.get("GOLD") >= price:
         PLAYER["GOLD"] -= price
@@ -281,6 +286,9 @@ def sell_defender(defender):
 
 def remove_obstacle(grid_x, grid_y):
     """Suppression de l'obstacle, conversion en case classique"""
+    if GAME_MANAGER.get("case_shown") is not None:
+        CANVAS.delete(GAME_MANAGER.get("case_shown"))
+        GAME_MANAGER["case_shown"] = None
     price = GAME_MANAGER.get("price_remove_obstacle")
     if PLAYER.get("GOLD") >= price:
         PLAYER["GOLD"] -= price
@@ -302,8 +310,21 @@ def creation_map():
 def creation_bloc(grid_x, grid_y):
     """Création de chaque bloc constituant la carte"""
     value = MAP[grid_y][grid_x]
+    if value == -1:
+        CANVAS.create_image(
+            grid_x*BLOC_SIZE+BLOC_SIZE/2,
+            grid_y*BLOC_SIZE+BLOC_SIZE/2,
+            image=IMG_EMPTY_BLOC
+        )
+
     if value in ("x", 0):
-        design.draw_bloc(value, CANVAS, BLOC_SIZE, grid_x * BLOC_SIZE, grid_y * BLOC_SIZE)
+        design.draw_bloc(0, CANVAS, BLOC_SIZE, grid_x * BLOC_SIZE, grid_y * BLOC_SIZE)
+    if value == "x":
+        CANVAS.create_image(
+            grid_x*BLOC_SIZE+BLOC_SIZE/2,
+            grid_y*BLOC_SIZE+BLOC_SIZE/2,
+            image=IMG_X_BLOC
+        )
 
 
 
@@ -707,6 +728,9 @@ L_LVL_MAX.place(x=150, y=225)
 for widget in FRAME_STATS.winfo_children() + FRAME_REQUEST.winfo_children():
     if isinstance(widget, Label):
         widget.configure(bg="black", fg="white")
+
+IMG_EMPTY_BLOC = PhotoImage(file='ressources/bloc_vide.png')
+IMG_X_BLOC = PhotoImage(file='ressources/bloc_x.png')
 
 main()
 F.mainloop()

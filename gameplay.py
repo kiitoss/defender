@@ -135,7 +135,7 @@ MONSTERS = [
         "score": 5,
         "wait_before_new_creation": 2000,
         "wait_loop_walk": 20,
-        "img": "monster.gif",
+        "img": "ressources/monster.gif",
         "frames_gif": 9
     }
 ]
