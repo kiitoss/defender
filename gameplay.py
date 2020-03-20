@@ -1,7 +1,7 @@
 """Toutes les valeurs concernant le gameplay du jeu sont ici"""
 
 PLAYER = {
-    "GOLD": 250000,
+    "GOLD": 250,
     "SCORE": 0,
     "LIFE": 100,
     "MONSTER_KILLED": 0
@@ -14,10 +14,21 @@ GAME_MANAGER = {
     "range_shown": None,
     "case_shown": None,
     "price_remove_obstacle": 2000,
-    "wave_size": 0,
     "bloc_size": 80,
     "wait_frame_animation": 10,
-    "waves": [[0, 20], [1, 10]],
+    "waves": [
+        [0, 20, 20],
+        [1, 20, 50],
+        [1, 30, 75],
+        [2, 10, 100],
+        [3, 50, 125],
+        [4, 20, 150],
+        [5, 1, 175],
+        [6, 30, 200],
+        [7, 30, 225],
+        [8, 20, 250],
+        [9, 40, 275]
+    ],
     "wave_now": 0
 }
 
@@ -50,7 +61,7 @@ DEFENDERS = [
             },
             {
                 "price": 150,
-                "min_dead": 50,
+                "min_dead": 20,
                 "upgrade_range": BLOC_SIZE * 0.2,
                 "upgrade_damages": 50,
                 "upgrade_speed": 100,
@@ -100,7 +111,7 @@ DEFENDERS = [
             },
             {
                 "price": 350,
-                "min_dead": 50,
+                "min_dead": 20,
                 "upgrade_range": BLOC_SIZE * 0.2,
                 "upgrade_damages": 50,
                 "upgrade_speed": 100
@@ -130,24 +141,22 @@ MONSTERS = [
     {
         "width": 72,
         "height": 80,
-        "color": "red",
         "life": 60,
         "gold": 7,
         "score": 5,
-        "wait_before_new_creation": 1500,
-        "wait_loop_walk": 20,
+        "wait_before_new_creation": 2500,
+        "wait_loop_walk": 25,
         "img": "ressources/monsters/pieuvre.gif",
         "frames_gif": 5,
-        "wait_frame_animation": 7
+        "wait_frame_animation": 5
     },
     # BOULE
     {
         "width": 56,
         "height": 80,
-        "color": "red",
-        "life": 60,
-        "gold": 7,
-        "score": 5,
+        "life": 80,
+        "gold": 8,
+        "score": 7,
         "wait_before_new_creation": 1500,
         "wait_loop_walk": 20,
         "img": "ressources/monsters/boule.gif",
@@ -158,54 +167,50 @@ MONSTERS = [
     {
         "width": 80,
         "height": 80,
-        "color": "red",
-        "life": 60,
-        "gold": 7,
-        "score": 5,
-        "wait_before_new_creation": 2000,
-        "wait_loop_walk": 20,
+        "life": 400,
+        "gold": 20,
+        "score": 10,
+        "wait_before_new_creation": 7000,
+        "wait_loop_walk": 30,
         "img": "ressources/monsters/squelette.gif",
         "frames_gif": 9,
-        "wait_frame_animation": 10
-    },
-    # CHEVALIER
-    {
-        "width": 77,
-        "height": 80,
-        "color": "red",
-        "life": 60,
-        "gold": 7,
-        "score": 5,
-        "wait_before_new_creation": 2000,
-        "wait_loop_walk": 20,
-        "img": "ressources/monsters/chevalier.gif",
-        "frames_gif": 5,
         "wait_frame_animation": 10
     },
     # CHAMPIGNON
     {
         "width": 80,
         "height": 80,
-        "color": "red",
         "life": 60,
-        "gold": 7,
+        "gold": 5,
         "score": 5,
-        "wait_before_new_creation": 1000,
-        "wait_loop_walk": 8,
+        "wait_before_new_creation": 200,
+        "wait_loop_walk": 20,
         "img": "ressources/monsters/champignon.gif",
         "frames_gif": 8,
         "wait_frame_animation": 5
+    },
+    # CHEVALIER
+    {
+        "width": 77,
+        "height": 80,
+        "life": 600,
+        "gold": 40,
+        "score": 15,
+        "wait_before_new_creation": 3000,
+        "wait_loop_walk": 20,
+        "img": "ressources/monsters/chevalier.gif",
+        "frames_gif": 5,
+        "wait_frame_animation": 10
     },
     # CYCLOPE
     {
         "width": 80,
         "height": 80,
-        "color": "red",
-        "life": 60,
-        "gold": 7,
-        "score": 5,
+        "life": 10000,
+        "gold": 500,
+        "score": 100,
         "wait_before_new_creation": 2000,
-        "wait_loop_walk": 20,
+        "wait_loop_walk": 100,
         "img": "ressources/monsters/cyclope.gif",
         "frames_gif": 6,
         "wait_frame_animation": 7
@@ -214,10 +219,9 @@ MONSTERS = [
     {
         "width": 80,
         "height": 80,
-        "color": "red",
-        "life": 60,
-        "gold": 7,
-        "score": 5,
+        "life": 500,
+        "gold": 40,
+        "score": 20,
         "wait_before_new_creation": 2000,
         "wait_loop_walk": 20,
         "img": "ressources/monsters/poulpe_bis.gif",
@@ -228,12 +232,11 @@ MONSTERS = [
     {
         "width": 77,
         "height": 80,
-        "color": "red",
-        "life": 60,
-        "gold": 7,
-        "score": 5,
-        "wait_before_new_creation": 2000,
-        "wait_loop_walk": 20,
+        "life": 1000,
+        "gold": 30,
+        "score": 30,
+        "wait_before_new_creation": 3000,
+        "wait_loop_walk": 30,
         "img": "ressources/monsters/plante_carnivore.gif",
         "frames_gif": 12,
         "wait_frame_animation": 10
@@ -242,11 +245,10 @@ MONSTERS = [
     {
         "width": 80,
         "height": 80,
-        "color": "red",
-        "life": 60,
-        "gold": 7,
-        "score": 5,
-        "wait_before_new_creation": 1500,
+        "life": 500,
+        "gold": 20,
+        "score": 40,
+        "wait_before_new_creation": 1000,
         "wait_loop_walk": 20,
         "img": "ressources/monsters/dragon.gif",
         "frames_gif": 10,
@@ -256,8 +258,7 @@ MONSTERS = [
     {
         "width": 80,
         "height": 80,
-        "color": "red",
-        "life": 60,
+        "life": 1000,
         "gold": 7,
         "score": 5,
         "wait_before_new_creation": 2000,

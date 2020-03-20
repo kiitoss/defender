@@ -38,54 +38,27 @@ def green():
     """retourn la couleur vert"""
     return "green"
 
-def draw_bloc(code, canvas, size, x_origin, y_origin):
+def draw_bloc(canvas, size, x_origin, y_origin):
     """Dessine les blocs du terrain"""
     bloc_pixel = []
-    all_colors = {
-        "classic_bloc": [rgb_traductor((78, 175, 0)), rgb_traductor((91, 155, 1))],
-        "locked_bloc": [rgb_traductor((242, 201, 1)), "black"]
-    }
-    if code == 0:
-        bloc = [
-            [1, 1, 1, 1, 1, 1, 1, 1, 1, 1],
-            [1, 0, 0, 0, 0, 0, 0, 0, 0, 1],
-            [1, 0, 0, 0, 0, 0, 0, 0, 0, 1],
-            [1, 0, 0, 0, 0, 0, 0, 0, 0, 1],
-            [1, 0, 0, 0, 0, 0, 0, 0, 0, 1],
-            [1, 0, 0, 0, 0, 0, 0, 0, 0, 1],
-            [1, 0, 0, 0, 0, 0, 0, 0, 0, 1],
-            [1, 0, 0, 0, 0, 0, 0, 0, 0, 1],
-            [1, 0, 0, 0, 0, 0, 0, 0, 0, 1],
-            [1, 1, 1, 1, 1, 1, 1, 1, 1, 1]
-        ]
-        list_colors = all_colors.get("classic_bloc")
-    elif code == "x":
-        bloc = [
-            [1, 1, 1, 1, 1, 1, 1, 1, 1, 1],
-            [1, 1, 1, 0, 0, 0, 0, 1, 1, 1],
-            [1, 1, 1, 1, 0, 0, 1, 1, 1, 1],
-            [1, 0, 1, 1, 1, 1, 1, 1, 0, 1],
-            [1, 0, 0, 1, 0, 0, 1, 0, 0, 1],
-            [1, 0, 0, 1, 0, 0, 1, 0, 0, 1],
-            [1, 0, 1, 1, 1, 1, 1, 1, 0, 1],
-            [1, 1, 1, 1, 0, 0, 1, 1, 1, 1],
-            [1, 1, 1, 0, 0, 0, 0, 1, 1, 1],
-            [1, 1, 1, 1, 1, 1, 1, 1, 1, 1]
-        ]
-        list_colors = all_colors.get("locked_bloc")
-
+    bloc = [
+        [1, 1, 1, 1, 1, 1, 1, 1, 1, 1],
+        [1, 0, 0, 0, 0, 0, 0, 0, 0, 1],
+        [1, 0, 0, 0, 0, 0, 0, 0, 0, 1],
+        [1, 0, 0, 0, 0, 0, 0, 0, 0, 1],
+        [1, 0, 0, 0, 0, 0, 0, 0, 0, 1],
+        [1, 0, 0, 0, 0, 0, 0, 0, 0, 1],
+        [1, 0, 0, 0, 0, 0, 0, 0, 0, 1],
+        [1, 0, 0, 0, 0, 0, 0, 0, 0, 1],
+        [1, 0, 0, 0, 0, 0, 0, 0, 0, 1],
+        [1, 1, 1, 1, 1, 1, 1, 1, 1, 1]
+    ]
+    list_colors = [rgb_traductor((78, 175, 0)), rgb_traductor((91, 155, 1))]
     pixel_size = size / len(bloc)
 
-    if len(bloc) != len(bloc[0]):
-        return []
-
-
     for pos_y, line in enumerate(bloc):
-        for pos_x, value in enumerate(line):
-            if code == 0:
-                color = list_colors[random.randrange(len(list_colors))]
-            else:
-                color = list_colors[value]
+        for pos_x in range(len(line)):
+            color = list_colors[random.randrange(len(list_colors))]
             bloc_pixel.append(
                 canvas.create_rectangle(
                     x_origin + pos_x * pixel_size,
