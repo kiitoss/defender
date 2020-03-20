@@ -7,6 +7,7 @@ import gameplay
 
 
 
+
 def main():
     """Fonction principale"""
     creation_map()
@@ -70,7 +71,6 @@ def manager_canvas_request(action, pos_x=None, pos_y=None):
                 clean_canvas_request()
                 show_my_defender(defender_shown)
 
-
 def clean_canvas_request():
     """Nettoie le canvas des requêtes"""
     status = GAME_MANAGER.get("status_canvas_option")
@@ -91,11 +91,24 @@ def clean_canvas_request():
             GAME_MANAGER["range_shown"] = None
         GAME_MANAGER["defender_shown"] = None
 
+    if GAME_MANAGER.get("case_shown") is not None:
+        CANVAS.delete(GAME_MANAGER.get("case_shown"))
+        GAME_MANAGER["case_shown"] = None
     GAME_MANAGER["status_canvas_option"] = "clean"
 
 
 def show_all_defenders(pos_x, pos_y):
     """Affiche tous les défenseurs que le joueur peut acheter"""
+    GAME_MANAGER["case_shown"] = CANVAS.create_rectangle(
+        pos_x*BLOC_SIZE,
+        pos_y*BLOC_SIZE,
+        (pos_x+1)*BLOC_SIZE,
+        (pos_y+1)*BLOC_SIZE,
+        width=3,
+        outline="black",
+        fill="black",
+        stipple="gray75",
+    )
     for i in range(len(DEFENDERS)):
         btn_defender = Button(
             FRAME_REQUEST,
@@ -119,14 +132,15 @@ def show_my_defender(defender_shown):
     L_KILLED.config(text="Monstres tués: "+str(defender_shown.monster_killed))
 
     list_upgrades = DEFENDERS[defender_shown.code].get("upgrades")
+    max_col = int(STATS_WIDTH / BLOC_SIZE)
     if len(list_upgrades) >= defender_shown.lvl:
         my_defender_upgrades = list_upgrades[defender_shown.lvl - 1]
         min_dead = my_defender_upgrades.get("min_dead")
         price_upgrade = my_defender_upgrades.get("price")
         if min_dead != 0:
-            my_text = "price: \n"+str(price_upgrade)+"\n monstre tués: \n"+str(min_dead)
+            my_text = "prix: "+str(price_upgrade)+"\n Kills > "+str(min_dead)
         else:
-            my_text = "price: \n"+str(price_upgrade)
+            my_text = "prix: "+str(price_upgrade)
 
         if defender_shown.monster_killed < my_defender_upgrades.get("min_dead"):
             button_state = "disabled"
@@ -137,36 +151,37 @@ def show_my_defender(defender_shown):
             abilities = ["DEGAT", "GLACE", "POISON"]
             max_col = int(STATS_WIDTH / BLOC_SIZE)
             for i, ability in enumerate(abilities):
-                col = i + ((max_col - len(abilities)) / 2)
+                col = i*1.5 + ((max_col - len(abilities)) / 6)
                 btn_upgrade = Button(
                     FRAME_REQUEST,
-                    text=ability+" \n "+my_text,
+                    text=ability+"\n\n"+my_text,
                     command=lambda code=i: transformation_defender(
                         defender_shown,
                         code,
                         my_defender_upgrades),
-                    width=7,
-                    height=4
+                    width=10,
+                    height=6
                 )
-                btn_upgrade.place(x=col*BLOC_SIZE, y=200)
+                btn_upgrade.place(x=col*BLOC_SIZE, y=180)
                 btn_upgrade.config(state=button_state)
         else:
+            col = (max_col-2.5) / 2
             btn_upgrade = Button(
                 FRAME_REQUEST,
-                text="UPGRADE: \n "+my_text,
+                text="AMELIORER:\n\n"+my_text,
                 command=lambda: upgrade_defender(defender_shown, my_defender_upgrades))
-            btn_upgrade.config(width=7, height=4)
-            btn_upgrade.place(x=0, y=200)
+            btn_upgrade.config(width=21, height=4)
+            btn_upgrade.place(x=col*BLOC_SIZE, y=180)
             btn_upgrade.config(state=button_state)
     else:
-        L_LVL_MAX.config(text="LVL MAX")
-
+        L_LVL_MAX.config(text="LEVEL MAX")
+    col = (max_col-2.5) / 2
     btn_sell = Button(
         FRAME_REQUEST,
-        text="VENDRE \n price: \n"+str(DEFENDERS[defender_shown.code].get("sell_price")),
+        text="VENDRE:\n\nprix: "+str(DEFENDERS[defender_shown.code].get("sell_price")),
         command=lambda: sell_defender(defender_shown))
-    btn_sell.config(width=7, height=4)
-    btn_sell.place(x=0, y=300)
+    btn_sell.config(width=21, height=4)
+    btn_sell.place(x=col*BLOC_SIZE, y=320)
 
     GAME_MANAGER["range_shown"] = CANVAS.create_oval(
         defender_shown.center_x-defender_shown.range,
@@ -189,12 +204,14 @@ def show_my_defender(defender_shown):
 
 def show_remove_obstacle(pos_x, pos_y):
     """Propose au joueur d'effacer l'obstacle"""
+    max_col = int(STATS_WIDTH / BLOC_SIZE)
+    col = (max_col-2.5) / 2
     btn_remove_obstacle = Button(
         FRAME_REQUEST,
         text="del obstacle",
         command=lambda: remove_obstacle(pos_x, pos_y))
-    btn_remove_obstacle.config(width=7, height=4)
-    btn_remove_obstacle.place(x=0, y=0)
+    btn_remove_obstacle.config(width=21, height=4)
+    btn_remove_obstacle.place(x=col*BLOC_SIZE, y=180)
     GAME_MANAGER["status_canvas_option"] = "show_remove_obstacle"
 
 
@@ -338,7 +355,7 @@ class Monster():
 
         self.max_frames = monster.get("frames_gif")
         self.frames = [PhotoImage(
-            file='monster.gif',
+            file=monster.get("img"),
             format='gif -index %i' %(i)) for i in range(self.max_frames)]
         self.frame = 0
         self.image = CANVAS.create_image(
@@ -654,54 +671,42 @@ CANVAS.place(x=0, y=0)
 
 FRAME_STATS = Canvas(F, width=STATS_WIDTH, height=SCREEN_HEIGHT / 2, bg="black")
 FRAME_STATS.place(x=SCREEN_WIDTH-STATS_WIDTH, y=0)
-# FRAME_STATS["bg"]="black"
-# FRAME_STATS["fg"]="white"
 B_START_WAVE = Button(
     FRAME_STATS,
     text="Lancer la vague",
+    width=15,
     command=lambda: creation_wave(random.randrange(len(MONSTERS)), 1))
-B_START_WAVE.place(x=15, y=15)
+B_START_WAVE.place(x=15, y=35)
 B_SPEED = Button(FRAME_STATS, text="x1", command=change_speed)
-B_SPEED.place(x=205, y=15)
+B_SPEED.place(x=205, y=35)
 L_WAVE_RUN = Label(FRAME_STATS, text="Avancée de la vague: 0/"+str(GAME_MANAGER.get("wave_size")))
-L_WAVE_RUN.place(x=15, y=45)
+L_WAVE_RUN.place(x=15, y=115)
 L_SCORE = Label(FRAME_STATS, text="Score: "+str(PLAYER.get("SCORE")))
-L_SCORE.place(x=15, y=75)
+L_SCORE.place(x=15, y=175)
 L_GOLD = Label(FRAME_STATS, text="Or: "+str(PLAYER.get("GOLD")))
-L_GOLD.place(x=15, y=105)
+L_GOLD.place(x=15, y=235)
 L_MONSTER_KILLED = Label(FRAME_STATS, text="Monstres Tués: 0")
-L_MONSTER_KILLED.place(x=15, y=135)
+L_MONSTER_KILLED.place(x=15, y=295)
 L_LIFE = Label(FRAME_STATS, text="Vies: "+str(PLAYER.get("LIFE")))
-L_LIFE.place(x=15, y=165)
+L_LIFE.place(x=15, y=355)
 
 FRAME_REQUEST = Canvas(F, width=STATS_WIDTH, height=SCREEN_HEIGHT / 2, bg="black")
 FRAME_REQUEST.place(x=SCREEN_WIDTH-STATS_WIDTH, y=SCREEN_HEIGHT / 2)
 L_DAMAGE = Label(FRAME_REQUEST, text="")
-L_DAMAGE.place(x=15, y=15)
+L_DAMAGE.place(x=15, y=25)
 L_RANGE = Label(FRAME_REQUEST, text="")
-L_RANGE.place(x=15, y=45)
+L_RANGE.place(x=STATS_WIDTH/2, y=25)
 L_SPEED = Label(FRAME_REQUEST, text="")
-L_SPEED.place(x=15, y=75)
+L_SPEED.place(x=15, y=105)
 L_KILLED = Label(FRAME_REQUEST, text="")
-L_KILLED.place(x=15, y=105)
+L_KILLED.place(x=STATS_WIDTH/2, y=105)
 L_LVL_MAX = Label(FRAME_REQUEST, text="")
-L_LVL_MAX.place(x=15, y=135)
+L_LVL_MAX.place(x=150, y=225)
 
 
 for widget in FRAME_STATS.winfo_children() + FRAME_REQUEST.winfo_children():
     if isinstance(widget, Label):
         widget.configure(bg="black", fg="white")
-
-
-# scale_w = new_width/old_width
-# scale_h = new_height/old_height
-
-# NON FONCTIONNEL (affiche mais ne bouge pas)
-# CANVAS.pack(expand = YES, fill = BOTH)
-# scale_w = 2
-# scale_h = 2
-# img = PhotoImage(file="mon_image.gif").zoom(scale_w, scale_h)
-# CANVAS.create_image(10, 10, anchor=NW, image=img)
 
 main()
 F.mainloop()

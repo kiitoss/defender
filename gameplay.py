@@ -12,6 +12,7 @@ GAME_MANAGER = {
     "game_speed": 1,
     "defender_shown": None,
     "range_shown": None,
+    "case_shown": None,
     "wave_running": 0,
     "price_remove_obstacle": 2000,
     "wave_size": 20,
@@ -134,6 +135,7 @@ MONSTERS = [
         "score": 5,
         "wait_before_new_creation": 2000,
         "wait_loop_walk": 20,
+        "img": "monster.gif",
         "frames_gif": 9
     }
 ]
