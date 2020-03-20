@@ -64,6 +64,11 @@ def manager_canvas_request(action, pos_x=None, pos_y=None):
         defender_shown = GAME_MANAGER.get("defender_shown")
         if defender_shown is not None:
             L_KILLED.config(text="Monstres tués: "+str(defender_shown.monster_killed))
+            upgrades = DEFENDERS[defender_shown.code].get("upgrades")[defender_shown.lvl - 1]
+            min_dead = upgrades.get("min_dead")
+            if  min_dead != 0 and defender_shown.monster_killed == min_dead:
+                clean_canvas_request()
+                show_my_defender(defender_shown)
 
 
 def clean_canvas_request():
@@ -90,7 +95,7 @@ def clean_canvas_request():
 
 
 def show_all_defenders(pos_x, pos_y):
-    """Affiche tous les défenseurs à acheter"""
+    """Affiche tous les défenseurs que le joueur peut acheter"""
     for i in range(len(DEFENDERS)):
         btn_defender = Button(
             FRAME_REQUEST,
@@ -106,7 +111,7 @@ def show_all_defenders(pos_x, pos_y):
 
 
 def show_my_defender(defender_shown):
-    """Affiche les défenseurs cliqué et ses statistiques"""
+    """Affiche les défenseurs sur lequel le joueur clique ainsi que ses statistiques"""
     GAME_MANAGER["defender_shown"] = defender_shown
     L_DAMAGE.config(text="Attaque: "+str(defender_shown.damages))
     L_RANGE.config(text="Range: "+str(defender_shown.range))
@@ -116,14 +121,52 @@ def show_my_defender(defender_shown):
     list_upgrades = DEFENDERS[defender_shown.code].get("upgrades")
     if len(list_upgrades) >= defender_shown.lvl:
         my_defender_upgrades = list_upgrades[defender_shown.lvl - 1]
-        btn_upgrade = Button(
-            FRAME_REQUEST,
-            text="UPGRADE \n price: \n"+str(my_defender_upgrades.get("price")),
-            command=lambda: upgrade_defender(defender_shown, my_defender_upgrades))
-        btn_upgrade.config(width=7, height=4)
-        btn_upgrade.place(x=0, y=200)
+        min_dead = my_defender_upgrades.get("min_dead")
+        price_upgrade = my_defender_upgrades.get("price")
+        if min_dead != 0:
+            my_text = "price: \n"+str(price_upgrade)+"\n monstre tués: \n"+str(min_dead)
+        else:
+            my_text = "price: \n"+str(price_upgrade)
+
+        if defender_shown.monster_killed < my_defender_upgrades.get("min_dead"):
+            button_state = "disabled"
+        else:
+            button_state = "normal"
+
+        if my_defender_upgrades.get("evolution"):
+            abilities = ["DEGAT", "GLACE", "POISON"]
+            max_col = int(STATS_WIDTH / BLOC_SIZE)
+            for i, ability in enumerate(abilities):
+                col = i + ((max_col - len(abilities)) / 2)
+                btn_upgrade = Button(
+                    FRAME_REQUEST,
+                    text=ability+" \n "+my_text,
+                    command=lambda code=i: transformation_defender(
+                        defender_shown,
+                        code,
+                        my_defender_upgrades),
+                    width=7,
+                    height=4
+                )
+                btn_upgrade.place(x=col*BLOC_SIZE, y=200)
+                btn_upgrade.config(state=button_state)
+        else:
+            btn_upgrade = Button(
+                FRAME_REQUEST,
+                text="UPGRADE: \n "+my_text,
+                command=lambda: upgrade_defender(defender_shown, my_defender_upgrades))
+            btn_upgrade.config(width=7, height=4)
+            btn_upgrade.place(x=0, y=200)
+            btn_upgrade.config(state=button_state)
     else:
         L_LVL_MAX.config(text="LVL MAX")
+
+    btn_sell = Button(
+        FRAME_REQUEST,
+        text="VENDRE \n price: \n"+str(DEFENDERS[defender_shown.code].get("sell_price")),
+        command=lambda: sell_defender(defender_shown))
+    btn_sell.config(width=7, height=4)
+    btn_sell.place(x=0, y=300)
 
     GAME_MANAGER["range_shown"] = CANVAS.create_oval(
         defender_shown.center_x-defender_shown.range,
@@ -158,7 +201,7 @@ def show_remove_obstacle(pos_x, pos_y):
 
 
 def creation_defender(code, grid_x, grid_y):
-    """Création d'un défenseur contre les ennemis"""
+    """Création d'un défenseur"""
     price = DEFENDERS[code].get("price")
     if PLAYER.get("GOLD") >= price:
         PLAYER["GOLD"] -= price
@@ -169,38 +212,29 @@ def creation_defender(code, grid_x, grid_y):
         upgrade_stats()
 
 
-def upgrade_defender(defender, upgrades, evolution_done=False):
-    """Amélioration des défenseurs"""
+def upgrade_defender(defender, upgrades):
+    """Amélioration du défenseur"""
     if PLAYER.get("GOLD") < upgrades.get("price") \
         or defender.monster_killed < upgrades.get("min_dead"):
         return
 
-    if upgrades.get("evolution") and evolution_done is False:
-        abilities = ["DEGAT", "GLACE", "POISON"]
-        max_col = STATS_WIDTH / BLOC_SIZE
-        for i in enumerate(abilities):
-            col = i + ((max_col - len(abilities)) / 2)
-            Button(
-                FRAME_REQUEST,
-                text=abilities[i],
-                command=lambda code=i: transformation_defender(defender, code, upgrades),
-                width=7,
-                height=4
-            ).place(x=col*BLOC_SIZE, y=0)
-    else:
-        PLAYER["GOLD"] -= upgrades.get("price")
-        defender.damages += upgrades.get("upgrade_damages")
-        defender.lvl += 1
-        defender.range += upgrades.get("upgrade_range")
-        defender.attack_speed -= upgrades.get("upgrade_speed")
-        if defender.attack_speed < 10:
-            defender.attack_speed = 10
-        upgrade_stats()
-        manager_canvas_request("creation", defender.grid_x, defender.grid_y)
+    PLAYER["GOLD"] -= upgrades.get("price")
+    defender.damages += upgrades.get("upgrade_damages")
+    defender.lvl += 1
+    defender.range += upgrades.get("upgrade_range")
+    defender.attack_speed -= upgrades.get("upgrade_speed")
+    if defender.attack_speed < 10:
+        defender.attack_speed = 10
+    upgrade_stats()
+    manager_canvas_request("creation", defender.grid_x, defender.grid_y)
 
 
 def transformation_defender(defender, code, upgrades):
-    """Donne le pouvoir au défenseur"""
+    """Fait évoluer le défenseur en lui donnant un pouvoir"""
+    if PLAYER.get("GOLD") < upgrades.get("price") \
+        or defender.monster_killed < upgrades.get("min_dead"):
+        return
+
     if code == 0:
         defender.ability = "attack"
         defender.damages += 50
@@ -210,8 +244,23 @@ def transformation_defender(defender, code, upgrades):
         defender.ability = "poison"
     defender.body = design.body_creation_defender(CANVAS, defender, (code+1))
     clean_canvas_request()
-    upgrade_defender(defender, upgrades, True)
+    upgrade_defender(defender, upgrades)
 
+
+def sell_defender(defender):
+    """Vente du défenseur"""
+    PLAYER["GOLD"] += DEFENDERS[defender.code].get("sell_price")
+    upgrade_stats()
+    # Pour l'instant que le corps des défenseurs est fait en pixel-art et non en GIF:
+    for body_part in defender.body:
+        CANVAS.delete(body_part)
+    # Lorsque les défenseurs auront été changés en GIF:
+    # CANVAS.remove(defender.body)
+    MAP[defender.grid_y][defender.grid_x] = 0
+    creation_bloc(defender.grid_x, defender.grid_y)
+    defender.exist = False
+    LIST_OF_DEFENDERS.remove(defender)
+    clean_canvas_request()
 
 def remove_obstacle(grid_x, grid_y):
     """Suppression de l'obstacle, conversion en case classique"""
@@ -362,7 +411,7 @@ class Monster():
             self.auto_kill()
 
     def adapt_on_grid(self):
-        """Check sur quelles positions de la grille se trouve l'ennemie"""
+        """Check sur quelle position de la grille se trouve l'ennemie"""
         if self.pos_x > (self.grid_x + 1) * BLOC_SIZE:
             self.grid_x += 1
         if self.pos_x < self.grid_x * BLOC_SIZE:
@@ -371,7 +420,7 @@ class Monster():
             self.grid_y += 1
 
     def auto_kill(self):
-        """Auto-détruit l'objet Monster"""
+        """Détruit le monstre"""
         if self.life <= 0:
             PLAYER["GOLD"] += self.gold
             PLAYER["SCORE"] += self.score
@@ -379,11 +428,10 @@ class Monster():
             L_MONSTER_KILLED.config(text="Monstres tués: "+str(PLAYER.get("MONSTER_KILLED")))
         else:
             PLAYER["LIFE"] -= 1
-            upgrade_stats()
             if PLAYER["LIFE"] == 0:
                 print("Défaite")
                 sys.exit()
-
+        upgrade_stats()
         LIST_OF_MONSTERS.remove(self)
         DEAD_MONSTERS.append(self)
         CANVAS.delete(self.life_bar)
@@ -431,6 +479,7 @@ class Defender():
         self.damages = defender.get("damages")
         self.attack_speed = defender.get("attack_speed")
 
+        self.exist = True
         self.ability = None
         self.lvl = 1
         self.grid_x = grid_x
@@ -452,6 +501,9 @@ class Defender():
 
     def auto_attack(self):
         """Gestion de l'auto-attaque des défenseurs"""
+        if not self.exist:
+            return
+
         if self.target is None:
             for monster in LIST_OF_MONSTERS:
                 delta_x_left_carre = (monster.pos_x - self.center_x) ** 2
@@ -531,7 +583,7 @@ class Defender():
             F.after(1, self.attack)
 
     def run_ability(self):
-        """Lance le sort du défenseur"""
+        """Lance le pouvoir du défenseur"""
         if random.randrange(100) < 10:
             if self.ability == "poison" and self.target.time_poison == 0:
                 self.target.time_poison += 3000

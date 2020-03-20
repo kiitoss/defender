@@ -30,6 +30,7 @@ DEFENDERS = [
         "attack_speed": 1000,
         "price": 100,
         "color": "black",
+        "sell_price": 20,
         "upgrades": [
             {
                 "price": 80,
@@ -62,7 +63,7 @@ DEFENDERS = [
             },
             {
                 "price": 1000,
-                "min_dead": 200,
+                "min_dead": 150,
                 "upgrade_range": BLOC_SIZE * 0.5,
                 "upgrade_damages": 200,
                 "upgrade_speed": 150,
@@ -79,6 +80,7 @@ DEFENDERS = [
         "attack_speed": 1000,
         "price": 250,
         "color": "blue",
+        "sell_price": 40,
         "upgrades": [
             {
                 "price": 200,
