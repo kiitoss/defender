@@ -13,11 +13,12 @@ GAME_MANAGER = {
     "defender_shown": None,
     "range_shown": None,
     "case_shown": None,
-    "wave_running": 0,
     "price_remove_obstacle": 2000,
-    "wave_size": 20,
+    "wave_size": 0,
     "bloc_size": 80,
-    "wait_frame_animation": 10
+    "wait_frame_animation": 10,
+    "waves": [[0, 20], [1, 10]],
+    "wave_now": 0
 }
 
 BLOC_SIZE = GAME_MANAGER.get("bloc_size")
@@ -125,7 +126,35 @@ DEFENDERS = [
 
 
 MONSTERS = [
-    # MONSTER 1
+    # PIEUVRE
+    {
+        "width": 72,
+        "height": 80,
+        "color": "red",
+        "life": 60,
+        "gold": 7,
+        "score": 5,
+        "wait_before_new_creation": 1500,
+        "wait_loop_walk": 20,
+        "img": "ressources/monsters/pieuvre.gif",
+        "frames_gif": 5,
+        "wait_frame_animation": 7
+    },
+    # BOULE
+    {
+        "width": 56,
+        "height": 80,
+        "color": "red",
+        "life": 60,
+        "gold": 7,
+        "score": 5,
+        "wait_before_new_creation": 1500,
+        "wait_loop_walk": 20,
+        "img": "ressources/monsters/boule.gif",
+        "frames_gif": 6,
+        "wait_frame_animation": 7
+    },
+    # SQUELETTE
     {
         "width": 80,
         "height": 80,
@@ -135,8 +164,107 @@ MONSTERS = [
         "score": 5,
         "wait_before_new_creation": 2000,
         "wait_loop_walk": 20,
-        "img": "ressources/monster.gif",
-        "frames_gif": 9
+        "img": "ressources/monsters/squelette.gif",
+        "frames_gif": 9,
+        "wait_frame_animation": 10
+    },
+    # CHEVALIER
+    {
+        "width": 77,
+        "height": 80,
+        "color": "red",
+        "life": 60,
+        "gold": 7,
+        "score": 5,
+        "wait_before_new_creation": 2000,
+        "wait_loop_walk": 20,
+        "img": "ressources/monsters/chevalier.gif",
+        "frames_gif": 5,
+        "wait_frame_animation": 10
+    },
+    # CHAMPIGNON
+    {
+        "width": 80,
+        "height": 80,
+        "color": "red",
+        "life": 60,
+        "gold": 7,
+        "score": 5,
+        "wait_before_new_creation": 1000,
+        "wait_loop_walk": 8,
+        "img": "ressources/monsters/champignon.gif",
+        "frames_gif": 8,
+        "wait_frame_animation": 5
+    },
+    # CYCLOPE
+    {
+        "width": 80,
+        "height": 80,
+        "color": "red",
+        "life": 60,
+        "gold": 7,
+        "score": 5,
+        "wait_before_new_creation": 2000,
+        "wait_loop_walk": 20,
+        "img": "ressources/monsters/cyclope.gif",
+        "frames_gif": 6,
+        "wait_frame_animation": 7
+    },
+    # POULPE_BIS
+    {
+        "width": 80,
+        "height": 80,
+        "color": "red",
+        "life": 60,
+        "gold": 7,
+        "score": 5,
+        "wait_before_new_creation": 2000,
+        "wait_loop_walk": 20,
+        "img": "ressources/monsters/poulpe_bis.gif",
+        "frames_gif": 30,
+        "wait_frame_animation": 5
+    },
+    # PLANTE_CARNIVORE
+    {
+        "width": 77,
+        "height": 80,
+        "color": "red",
+        "life": 60,
+        "gold": 7,
+        "score": 5,
+        "wait_before_new_creation": 2000,
+        "wait_loop_walk": 20,
+        "img": "ressources/monsters/plante_carnivore.gif",
+        "frames_gif": 12,
+        "wait_frame_animation": 10
+    },
+    # DRAGON
+    {
+        "width": 80,
+        "height": 80,
+        "color": "red",
+        "life": 60,
+        "gold": 7,
+        "score": 5,
+        "wait_before_new_creation": 1500,
+        "wait_loop_walk": 20,
+        "img": "ressources/monsters/dragon.gif",
+        "frames_gif": 10,
+        "wait_frame_animation": 4
+    },
+    # GARY
+    {
+        "width": 80,
+        "height": 80,
+        "color": "red",
+        "life": 60,
+        "gold": 7,
+        "score": 5,
+        "wait_before_new_creation": 2000,
+        "wait_loop_walk": 10,
+        "img": "ressources/monsters/gary.gif",
+        "frames_gif": 40,
+        "wait_frame_animation": 2
     }
 ]
 

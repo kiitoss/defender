@@ -329,13 +329,17 @@ def creation_bloc(grid_x, grid_y):
 
 
 
-def creation_wave(code, click=None):
+def creation_wave(code, still, click=None):
     """Création de la vague d'ennemies"""
     if click is not None:
-        GAME_MANAGER["wave_running"] += 1
+        GAME_MANAGER["wave_now"] += 1
         B_START_WAVE.config(text="Vague suivante")
-    total_wave_size = GAME_MANAGER.get("wave_size") * GAME_MANAGER.get("wave_running")
-    if len(LIST_OF_MONSTERS) + len(DEAD_MONSTERS) < total_wave_size:
+
+    total_wave_size = 0
+    for i in range(GAME_MANAGER.get("wave_now")):
+        total_wave_size += GAME_MANAGER.get("waves")[i][1]
+    if len(LIST_OF_MONSTERS) + len(DEAD_MONSTERS) < total_wave_size and still > 0:
+        still -= 1
         Monster(code)
         if GAME_MANAGER["range_shown"] is not None:
             CANVAS.tag_raise(GAME_MANAGER.get("range_shown"))
@@ -346,10 +350,13 @@ def creation_wave(code, click=None):
             # CANVAS.tag_raise(defender_shown.body)
         monster_waiting_time = MONSTERS[code].get("wait_before_new_creation")
         waiting_time = int(monster_waiting_time / GAME_MANAGER.get("game_speed"))
-        F.after(waiting_time, lambda: creation_wave(code))
+        F.after(waiting_time, lambda: creation_wave(code, still))
 
-
-
+def launch_wave():
+    """Lance la creation de la vague d'ennemies"""
+    wave_properties = GAME_MANAGER.get("waves")[GAME_MANAGER.get("wave_now")]
+    if len(GAME_MANAGER.get("waves")) > GAME_MANAGER.get("wave_now"):
+        creation_wave(wave_properties[0], wave_properties[1], 1)
 
 class Monster():
     """Création d'un nouveau monstre"""
@@ -393,8 +400,10 @@ class Monster():
 
         LIST_OF_MONSTERS.append(self)
         wave_run = str(len(LIST_OF_MONSTERS)+len(DEAD_MONSTERS))
-        wave_max = str(GAME_MANAGER.get("wave_size") * GAME_MANAGER.get("wave_running"))
-        L_WAVE_RUN.config(text="Avancée de la vague: "+wave_run+"/"+wave_max)
+        total_wave_size = 0
+        for i in range(GAME_MANAGER.get("wave_now")):
+            total_wave_size += GAME_MANAGER.get("waves")[i][1]
+        L_WAVE_RUN.config(text="Avancée de la vague: "+wave_run+"/"+str(total_wave_size))
 
         self.auto_move()
 
@@ -416,7 +425,7 @@ class Monster():
             self.pos_y += self.direction[1]
             self.before_new_frame -= 1
             if self.before_new_frame == 0:
-                self.before_new_frame = GAME_MANAGER.get("wait_frame_animation")
+                self.before_new_frame = MONSTERS[self.code].get("wait_frame_animation")
                 self.frame += 1
                 if self.frame >= self.max_frames:
                     self.frame = 0
@@ -476,12 +485,16 @@ class Monster():
         CANVAS.delete(self.image)
 
         monster_appeared = len(LIST_OF_MONSTERS) + len(DEAD_MONSTERS)
-        full_wave_size = GAME_MANAGER.get("wave_running") * GAME_MANAGER.get("wave_size")
-        if len(LIST_OF_MONSTERS) == 0 and monster_appeared == full_wave_size:
+        total_wave_size = 0
+        for i in range(GAME_MANAGER.get("wave_now")):
+            total_wave_size += GAME_MANAGER.get("waves")[i][1]
+        if len(LIST_OF_MONSTERS) == 0 and monster_appeared == total_wave_size:
             DEAD_MONSTERS[:] = []
-            GAME_MANAGER["wave_running"] = 0
+            for i in range(GAME_MANAGER.get("wave_now")):
+                GAME_MANAGER["waves"].remove(GAME_MANAGER.get("waves")[i])
+            GAME_MANAGER["wave_now"] = 0
             B_START_WAVE.config(text="Lancer la vague")
-            L_WAVE_RUN.config(text="Avancée de la vague: 0/"+str(GAME_MANAGER.get("wave_size")))
+            L_WAVE_RUN.config(text="Avancée de la vague: 0/"+str(GAME_MANAGER.get("waves")[0][1]))
         upgrade_stats()
 
     def analyse_direction(self):
@@ -696,7 +709,7 @@ B_START_WAVE = Button(
     FRAME_STATS,
     text="Lancer la vague",
     width=15,
-    command=lambda: creation_wave(random.randrange(len(MONSTERS)), 1))
+    command=launch_wave)
 B_START_WAVE.place(x=15, y=35)
 B_SPEED = Button(FRAME_STATS, text="x1", command=change_speed)
 B_SPEED.place(x=205, y=35)
