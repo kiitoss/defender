@@ -2,7 +2,6 @@
 from tkinter import Tk, Canvas, Button, Label, PhotoImage
 import random
 import sys
-import design
 import gameplay
 
 
@@ -51,6 +50,22 @@ def upgrade_stats():
     L_LIFE.config(text="Vies: "+str(PLAYER.get("LIFE")))
 
 
+def upgrade_life(item):
+    """Mise à jour de la jauge de vie des enemies"""
+    if item.life <= item.max_life / 3:
+        color = "red"
+    elif item.life <= item.max_life / 2:
+        color = "orange"
+    else:
+        color = "green"
+
+    return CANVAS.create_rectangle(
+        item.pos_x,
+        item.pos_y - 10,
+        item.pos_x + item.width * item.life / item.max_life,
+        item.pos_y - 5,
+        fill=color
+        )
 
 
 def manager_canvas_request(action, pos_x=None, pos_y=None):
@@ -111,16 +126,23 @@ def clean_canvas_request():
 
 def show_all_defenders(pos_x, pos_y):
     """Affiche tous les défenseurs que le joueur peut acheter"""
-    for i in range(len(DEFENDERS)):
+    my_images = [IMG_TOUR_1, IMG_TOUR_2, IMG_TOUR_D, IMG_TOUR_G, IMG_TOUR_P]
+    for i, defender in enumerate(DEFENDERS):
         btn_defender = Button(
             FRAME_REQUEST,
-            text="DEF "+str(i+1)+"\nprix: "+str(DEFENDERS[i].get("price")),
+            text="prix: "+str(defender.get("price")),
+            image=my_images[i][0],
+            compound="top",
             command=lambda code=i: creation_defender(code, pos_x, pos_y),
-            width=7,
-            height=4
+            width=80,
+            height=120
         )
-        row = int((i * BLOC_SIZE) / STATS_WIDTH)
-        col = (i - row*STATS_WIDTH/BLOC_SIZE)
+        if i < 2:
+            row = 1
+            col = i*1.5+1.1
+        else:
+            row = 3
+            col = i*1.5 - 2.7
         btn_defender.place(x=col*BLOC_SIZE, y=row*BLOC_SIZE)
     GAME_MANAGER["status_canvas_option"] = "show_all_defenders"
 
@@ -195,12 +217,8 @@ def show_my_defender(defender_shown):
         fill="green",
         stipple="gray25",
     )
+    CANVAS.tag_raise(defender_shown.body)
 
-    # Pour l'instant que le corps des défenseurs est fait en pixel-art et non en GIF:
-    for body_part in defender_shown.body:
-        CANVAS.tag_raise(body_part)
-    # Lorsque les défenseurs auront été changés en GIF:
-    # CANVAS.tag_raise(defender_shown.body)
     GAME_MANAGER["status_canvas_option"] = "show_my_defender"
 
 
@@ -245,6 +263,12 @@ def upgrade_defender(defender, upgrades):
     PLAYER["GOLD"] -= upgrades.get("price")
     defender.damages += upgrades.get("upgrade_damages")
     defender.lvl += 1
+    CANVAS.delete(defender.body)
+    defender.body = CANVAS.create_image(
+        defender.grid_x*BLOC_SIZE+BLOC_SIZE/2,
+        defender.grid_y*BLOC_SIZE+BLOC_SIZE/2,
+        image=defender.img[defender.lvl - 1]
+    )
     defender.range += upgrades.get("upgrade_range")
     defender.attack_speed -= upgrades.get("upgrade_speed")
     if defender.attack_speed < 10:
@@ -266,7 +290,6 @@ def transformation_defender(defender, code, upgrades):
         defender.ability = "freeze"
     elif code == 2:
         defender.ability = "poison"
-    defender.body = design.body_creation_defender(CANVAS, defender, (code+1))
     clean_canvas_request()
     upgrade_defender(defender, upgrades)
 
@@ -275,11 +298,7 @@ def sell_defender(defender):
     """Vente du défenseur"""
     PLAYER["GOLD"] += DEFENDERS[defender.code].get("sell_price")
     upgrade_stats()
-    # Pour l'instant que le corps des défenseurs est fait en pixel-art et non en GIF:
-    for body_part in defender.body:
-        CANVAS.delete(body_part)
-    # Lorsque les défenseurs auront été changés en GIF:
-    # CANVAS.remove(defender.body)
+    CANVAS.delete(defender.body)
     MAP[defender.grid_y][defender.grid_x] = 0
     creation_bloc(defender.grid_x, defender.grid_y)
     defender.exist = False
@@ -319,8 +338,13 @@ def creation_bloc(grid_x, grid_y):
             image=IMG_EMPTY_BLOC
         )
 
-    if value in ("x", 0):
-        design.draw_bloc(CANVAS, BLOC_SIZE, grid_x * BLOC_SIZE, grid_y * BLOC_SIZE)
+    elif value in ("x", 0):
+        CANVAS.create_image(
+            grid_x*BLOC_SIZE+BLOC_SIZE/2,
+            grid_y*BLOC_SIZE+BLOC_SIZE/2,
+            image=IMG_1_BLOC
+        )
+
     if value == "x":
         CANVAS.create_image(
             grid_x*BLOC_SIZE+BLOC_SIZE/2,
@@ -345,11 +369,7 @@ def creation_wave(code, still, click=None):
         Monster(code)
         if GAME_MANAGER["range_shown"] is not None:
             CANVAS.tag_raise(GAME_MANAGER.get("range_shown"))
-            # Pour l'instant que le corps des défenseurs est fait en pixel-art et non en GIF:
-            for body_part in GAME_MANAGER.get("defender_shown").body:
-                CANVAS.tag_raise(body_part)
-            # Lorsque les défenseurs auront été changés en GIF:
-            # CANVAS.tag_raise(defender_shown.body)
+            CANVAS.tag_raise(GAME_MANAGER.get("defender_shown").body)
         monster_waiting_time = MONSTERS[code].get("wait_before_new_creation")
         waiting_time = int(monster_waiting_time / GAME_MANAGER.get("game_speed"))
         F.after(waiting_time, lambda: creation_wave(code, still))
@@ -395,7 +415,7 @@ class Monster():
             self.pos_y + self.width / 2,
             image=self.frames[self.frame]
             )
-        self.life_bar = design.upgrade_life(CANVAS, self)
+        self.life_bar = upgrade_life(self)
         self.before_new_frame = GAME_MANAGER.get("wait_frame_animation")
 
         self.time_freeze = 0
@@ -445,7 +465,7 @@ class Monster():
         if self.time_poison > 0:
             self.life -= int((self.poisoner.damages/ self.poisoner.attack_speed) * (self.wait_walk))
             CANVAS.delete(self.life_bar)
-            self.life_bar = design.upgrade_life(CANVAS, self)
+            self.life_bar = upgrade_life(self)
             if self.life <= 0 and self.is_alive:
                 self.poisoner.monster_killed += 1
                 CANVAS.delete(self.poisoner.missile)
@@ -557,7 +577,22 @@ class Defender():
         self.missile_coord = []
         self.monster_killed = 0
 
-        self.body = design.body_creation_defender(CANVAS, self)
+        if self.code == 0:
+            self.img = IMG_TOUR_1
+        elif self.code == 1:
+            self.img = IMG_TOUR_2
+        elif self.code == 2:
+            self.img = IMG_TOUR_D
+        elif self.code == 3:
+            self.img = IMG_TOUR_G
+        elif self.code == 4:
+            self.img = IMG_TOUR_P
+
+        self.body = CANVAS.create_image(
+            self.grid_x*BLOC_SIZE+BLOC_SIZE/2,
+            self.grid_y*BLOC_SIZE+BLOC_SIZE/2,
+            image=self.img[0]
+        )
 
         LIST_OF_DEFENDERS.append(self)
 
@@ -634,7 +669,7 @@ class Defender():
 
             CANVAS.delete(self.target.life_bar)
             if self.target.life > 0 and self.target.is_alive:
-                self.target.life_bar = design.upgrade_life(CANVAS, self.target)
+                self.target.life_bar = upgrade_life(self.target)
             if self.target.life == 0 and self.target.is_alive:
                 self.monster_killed += 1
                 self.target.is_alive = False
@@ -755,8 +790,37 @@ for widget in FRAME_STATS.winfo_children() + FRAME_REQUEST.winfo_children():
     if isinstance(widget, Label):
         widget.configure(bg="black", fg="white")
 
-IMG_EMPTY_BLOC = PhotoImage(file='ressources/bloc_vide.png')
-IMG_X_BLOC = PhotoImage(file='ressources/bloc_x.png')
+IMG_EMPTY_BLOC = PhotoImage(file='ressources/blocs/bloc_vide.png')
+IMG_X_BLOC = PhotoImage(file='ressources/blocs/bloc_x.png')
+IMG_1_BLOC = PhotoImage(file='ressources/blocs/bloc_1.png')
+IMG_TOUR_1 = [
+    PhotoImage(file='ressources/defenders/tour11.png'),
+    PhotoImage(file='ressources/defenders/tour12.png'),
+    PhotoImage(file='ressources/defenders/tour13.png'),
+    PhotoImage(file='ressources/defenders/tour13.png')
+]
+IMG_TOUR_2 = [
+    PhotoImage(file='ressources/defenders/tour21.png'),
+    PhotoImage(file='ressources/defenders/tour22.png'),
+    PhotoImage(file='ressources/defenders/tour23.png'),
+    PhotoImage(file='ressources/defenders/tour23.png')
+]
+IMG_TOUR_P = [
+    PhotoImage(file='ressources/defenders/tourP1.png'),
+    PhotoImage(file='ressources/defenders/tourP2.png'),
+    PhotoImage(file='ressources/defenders/tourP3.png')
+]
+IMG_TOUR_G = [
+    PhotoImage(file='ressources/defenders/tourG1.png'),
+    PhotoImage(file='ressources/defenders/tourG2.png'),
+    PhotoImage(file='ressources/defenders/tourG3.png')
+]
+IMG_TOUR_D = [
+    PhotoImage(file='ressources/defenders/tourD1.png'),
+    PhotoImage(file='ressources/defenders/tourD2.png'),
+    PhotoImage(file='ressources/defenders/tourD3.png')
+]
+
 
 main()
 F.mainloop()

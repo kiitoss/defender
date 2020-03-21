@@ -1,5 +1,4 @@
 """Toutes les valeurs concernant le gameplay du jeu sont ici"""
-
 PLAYER = {
     "GOLD": 250,
     "SCORE": 0,
@@ -50,14 +49,14 @@ DEFENDERS = [
                 "min_dead": 0,
                 "upgrade_range": BLOC_SIZE * 0.2,
                 "upgrade_damages": 10,
-                "upgrade_speed": 100,
+                "upgrade_speed": 100
             },
             {
                 "price": 100,
                 "min_dead": 0,
                 "upgrade_range": BLOC_SIZE * 0.2,
                 "upgrade_damages": 20,
-                "upgrade_speed": 100,
+                "upgrade_speed": 100
             },
             {
                 "price": 150,
@@ -66,20 +65,6 @@ DEFENDERS = [
                 "upgrade_damages": 50,
                 "upgrade_speed": 100,
                 "evolution": True
-            },
-            {
-                "price": 250,
-                "min_dead": 0,
-                "upgrade_range": BLOC_SIZE * 0.5,
-                "upgrade_damages": 100,
-                "upgrade_speed": 150,
-            },
-            {
-                "price": 1000,
-                "min_dead": 150,
-                "upgrade_range": BLOC_SIZE * 0.5,
-                "upgrade_damages": 200,
-                "upgrade_speed": 150,
             }
         ]
     },
@@ -114,21 +99,92 @@ DEFENDERS = [
                 "min_dead": 20,
                 "upgrade_range": BLOC_SIZE * 0.2,
                 "upgrade_damages": 50,
+                "upgrade_speed": 100,
+                "evolution": True
+            }
+        ]
+    },
+
+    # DEFENDER ATTAQUE
+    {
+        "width": BLOC_SIZE / 1.35,
+        "height": BLOC_SIZE,
+        "damages": 50,
+        "range": BLOC_SIZE * 2,
+        "attack_speed": 1000,
+        "price": 250,
+        "color": "blue",
+        "sell_price": 40,
+        "upgrades": [
+            {
+                "price": 200,
+                "min_dead": 0,
+                "upgrade_range": BLOC_SIZE * 0.2,
+                "upgrade_damages": 10,
                 "upgrade_speed": 100
             },
             {
-                "price": 500,
+                "price": 250,
                 "min_dead": 0,
-                "upgrade_range": BLOC_SIZE * 0.5,
-                "upgrade_damages": 100,
-                "upgrade_speed": 150
+                "upgrade_range": BLOC_SIZE * 0.2,
+                "upgrade_damages": 20,
+                "upgrade_speed": 100
+            }
+        ]
+    },
+
+    # DEFENDER GLACE
+    {
+        "width": BLOC_SIZE / 1.35,
+        "height": BLOC_SIZE,
+        "damages": 50,
+        "range": BLOC_SIZE * 2,
+        "attack_speed": 1000,
+        "price": 250,
+        "color": "blue",
+        "sell_price": 40,
+        "upgrades": [
+            {
+                "price": 200,
+                "min_dead": 0,
+                "upgrade_range": BLOC_SIZE * 0.2,
+                "upgrade_damages": 10,
+                "upgrade_speed": 100
             },
             {
-                "price": 2500,
-                "min_dead": 200,
-                "upgrade_range": BLOC_SIZE * 0.5,
-                "upgrade_damages": 200,
-                "upgrade_speed": 150
+                "price": 250,
+                "min_dead": 0,
+                "upgrade_range": BLOC_SIZE * 0.2,
+                "upgrade_damages": 20,
+                "upgrade_speed": 100
+            }
+        ]
+    },
+
+    # DEFENDER POISON
+    {
+        "width": BLOC_SIZE / 1.35,
+        "height": BLOC_SIZE,
+        "damages": 50,
+        "range": BLOC_SIZE * 2,
+        "attack_speed": 1000,
+        "price": 250,
+        "color": "blue",
+        "sell_price": 40,
+        "upgrades": [
+            {
+                "price": 200,
+                "min_dead": 0,
+                "upgrade_range": BLOC_SIZE * 0.2,
+                "upgrade_damages": 10,
+                "upgrade_speed": 100
+            },
+            {
+                "price": 250,
+                "min_dead": 0,
+                "upgrade_range": BLOC_SIZE * 0.2,
+                "upgrade_damages": 20,
+                "upgrade_speed": 100
             }
         ]
     }
