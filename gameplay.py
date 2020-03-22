@@ -1,4 +1,67 @@
-"""Toutes les valeurs concernant le gameplay du jeu sont ici"""
+"""Fichier recensant les valeurs pour le gameplay du jeu sont ici"""
+
+#Cartes du jeu:
+# -1: chemin pour les enemies
+# 0: case vide
+# 1-9: defenseurs alliés
+# 'x': case objet a demolir avant de pouvoir construire
+MAPS = [
+    [
+        ["x", 0, 0, 0, 0, -1, 0, "x", "x", "x", "x"],
+        [-1, -1, -1, -1, -1, -1, 0, "x", "x", "x", "x"],
+        [-1, "x", "x", 0, 0, 0, 0, 0, 0, 0, 0],
+        [-1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1],
+        [0, 0, 0, 0, 0, 0, 0, 0, "x", "x", -1],
+        [-1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1],
+        [-1, "x", "x", 0, 0, 0, 0, 0, 0, 0, 0],
+        [-1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1],
+        [0, 0, 0, 0, 0, 0, 0, 0, "x", "x", -1],
+        [-1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1],
+        [-1, "x", "x", 0, 0, 0, 0, 0, 0, 0, 0]
+    ],
+    [
+        [0, 0, 0, 0, 0, -1, 0, "x", "x", "x", "x"],
+        [0, -1, -1, -1, -1, -1, 0, "x", "x", "x", "x"],
+        [0, -1, "x", 0, 0, 0, 0, 0, 0, 0, 0],
+        [0, -1, -1, -1, -1, -1, -1, -1, -1, 0, 0],
+        [0, 0, 0, 0, 0, 0, 0, "x", -1, 0, 0],
+        [0, 0, 0, -1, -1, -1, -1, -1, -1, 0, 0],
+        ["x", 0, 0, -1, "x", 0, 0, 0, 0, 0, 0],
+        ["x", "x", 0, -1, -1, -1, -1, 0, 0, 0, 0],
+        ["x", "x", 0, 0, 0, "x", -1, 0, 0, "x", "x"],
+        ["x", "x", "x", 0, 0, -1, -1, 0, 0, "x", "x"],
+        ["x", "x", "x", 0, 0, -1, 0, 0, "x", "x", "x"]
+    ],
+    [
+        [0, 0, 0, 0, "x", -1, "x", 0, 0, 0, 0],
+        [-1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1],
+        [-1, 0, 0, 0, "x", 0, "x", 0, 0, 0, -1],
+        [-1, 0, "x", "x", 0, "x", 0, "x", "x", 0, -1],
+        [-1, 0, 0, 0, "x", 0, "x", 0, 0, 0, -1],
+        [-1, 0, 0, 0, 0, 0, 0, 0, 0, 0, -1],
+        [-1, 0, 0, 0, 0, 0, 0, 0, 0, 0, -1],
+        [-1, 0, "x", "x", 0, "x", 0, "x", "x", 0, -1],
+        [-1, 0, 0, 0, 0, 0, 0, 0, 0, 0, -1],
+        [-1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1],
+        [0, 0, 0, 0, 0, -1, 0, 0, 0, 0, 0]
+    ],
+    [
+        ["x", 0, 0, 0, "x", -1, "x", 0, 0, 0, "x"],
+        [0, 0, 0, "x", 0, -1, 0, 0, "x", 0, 0],
+        [0, 0, 0, 0, "x", -1, "x", 0, 0, 0, 0],
+        [0, 0, 0, "x", 0, -1, 0, "x", 0, 0, 0],
+        [0, 0, "x", 0, 0, -1, 0, 0, "x", 0, 0],
+        [0, "x", 0, 0, 0, -1, 0, 0, 0, "x", 0],
+        ["x", 0, 0, 0, 0, -1, 0, 0, 0, 0, "x"],
+        [0, "x", 0, 0, 0, -1, 0, 0, 0, "x", 0],
+        [0, 0, "x", 0, 0, -1, 0, 0, "x", 0, 0],
+        [0, 0, 0, "x", 0, -1, 0, "x", 0, 0, 0],
+        ["x", 0, 0, 0, "x", -1, "x", 0, 0, 0, "x"]
+    ]
+]
+
+
+# Informations concernant le joueur
 PLAYER = {
     "GOLD": 250,
     "SCORE": 0,
@@ -6,34 +69,45 @@ PLAYER = {
     "MONSTER_KILLED": 0
 }
 
+
+# Parametres de la partie
 GAME_MANAGER = {
-    "status_canvas_option": "clean",
+    "status_frame_option": "clean",
     "game_speed": 1,
+    "game_launched": False,
     "defender_shown": None,
     "range_shown": None,
     "case_shown": None,
     "price_remove_obstacle": 2000,
     "bloc_size": 80,
     "wait_frame_animation": 10,
+    "map": MAPS[0],
     "waves": [
-        [0, 20, 20],
-        [1, 20, 50],
-        [1, 30, 75],
-        [2, 10, 100],
-        [3, 50, 125],
-        [4, 20, 150],
-        [5, 1, 175],
-        [6, 30, 200],
-        [7, 30, 225],
-        [8, 20, 250],
-        [9, 40, 275]
+        #monster, qty, life, money_per_monster, prime
+        [0, 20, 60, 7, 25],
+        [1, 15, 70, 8, 50],
+        [1, 20, 70, 8, 75],
+        [2, 20, 400, 10, 100],
+        [3, 40, 30, 10, 125],
+        [4, 15, 400, 20, 150],
+        [5, 1, 2500, 500, 175],
+        [6, 10, 500, 30, 200],
+        [7, 30, 1000, 40, 225],
+        [8, 15, 600, 45, 250],
+        [5, 1, 12000, 700, 275],
+        [9, 35, 1000, 7, 305]
     ],
+    "coeff_wave": 1,
     "wave_now": 0
 }
 
+
 BLOC_SIZE = GAME_MANAGER.get("bloc_size")
 
+
+# Caracteristiques des defenseurs
 DEFENDERS = [
+    # DEFENSEUR 1
     {
         "width": BLOC_SIZE / 1.35,
         "height": BLOC_SIZE,
@@ -41,7 +115,8 @@ DEFENDERS = [
         "range": BLOC_SIZE * 1.5,
         "attack_speed": 1000,
         "price": 100,
-        "color": "black",
+        "color": "brown",
+        "ability": None,
         "sell_price": 20,
         "upgrades": [
             {
@@ -54,14 +129,14 @@ DEFENDERS = [
             {
                 "price": 100,
                 "min_dead": 0,
-                "upgrade_range": BLOC_SIZE * 0.2,
+                "upgrade_range": BLOC_SIZE * 0.3,
                 "upgrade_damages": 20,
                 "upgrade_speed": 100
             },
             {
-                "price": 150,
+                "price": 250,
                 "min_dead": 20,
-                "upgrade_range": BLOC_SIZE * 0.2,
+                "upgrade_range": BLOC_SIZE * 0.4,
                 "upgrade_damages": 50,
                 "upgrade_speed": 100,
                 "evolution": True
@@ -69,7 +144,7 @@ DEFENDERS = [
         ]
     },
 
-    # DEFENDER 2
+    # DEFENSEUR 2
     {
         "width": BLOC_SIZE / 1.35,
         "height": BLOC_SIZE,
@@ -77,7 +152,8 @@ DEFENDERS = [
         "range": BLOC_SIZE * 2,
         "attack_speed": 1000,
         "price": 250,
-        "color": "blue",
+        "color": "black",
+        "ability": None,
         "sell_price": 40,
         "upgrades": [
             {
@@ -90,100 +166,103 @@ DEFENDERS = [
             {
                 "price": 250,
                 "min_dead": 0,
-                "upgrade_range": BLOC_SIZE * 0.2,
+                "upgrade_range": BLOC_SIZE * 0.3,
                 "upgrade_damages": 20,
                 "upgrade_speed": 100
             },
+            {
+                "price": 500,
+                "min_dead": 20,
+                "upgrade_range": BLOC_SIZE * 0.4,
+                "upgrade_damages": 50,
+                "upgrade_speed": 100,
+                "evolution": True
+            }
+        ]
+    },
+
+    # DEFENSEUR ATTAQUE
+    {
+        "width": BLOC_SIZE / 1.35,
+        "height": BLOC_SIZE,
+        "damages": 100,
+        "range": BLOC_SIZE * 2,
+        "attack_speed": 800,
+        "price": 500,
+        "color": "red",
+        "ability": "attack",
+        "sell_price": 100,
+        "upgrades": [
             {
                 "price": 350,
-                "min_dead": 20,
-                "upgrade_range": BLOC_SIZE * 0.2,
+                "min_dead": 0,
+                "upgrade_range": BLOC_SIZE * 0.3,
                 "upgrade_damages": 50,
-                "upgrade_speed": 100,
-                "evolution": True
-            }
-        ]
-    },
-
-    # DEFENDER ATTAQUE
-    {
-        "width": BLOC_SIZE / 1.35,
-        "height": BLOC_SIZE,
-        "damages": 50,
-        "range": BLOC_SIZE * 2,
-        "attack_speed": 1000,
-        "price": 250,
-        "color": "blue",
-        "sell_price": 40,
-        "upgrades": [
-            {
-                "price": 200,
-                "min_dead": 0,
-                "upgrade_range": BLOC_SIZE * 0.2,
-                "upgrade_damages": 10,
                 "upgrade_speed": 100
             },
             {
-                "price": 250,
-                "min_dead": 0,
-                "upgrade_range": BLOC_SIZE * 0.2,
-                "upgrade_damages": 20,
+                "price": 700,
+                "min_dead": 30,
+                "upgrade_range": BLOC_SIZE * 0.5,
+                "upgrade_damages": 150,
                 "upgrade_speed": 100
             }
         ]
     },
 
-    # DEFENDER GLACE
+    # DEFENSEUR GLACE
     {
         "width": BLOC_SIZE / 1.35,
         "height": BLOC_SIZE,
-        "damages": 50,
+        "damages": 70,
         "range": BLOC_SIZE * 2,
         "attack_speed": 1000,
-        "price": 250,
+        "price": 500,
         "color": "blue",
-        "sell_price": 40,
+        "ability": "freeze",
+        "sell_price": 100,
         "upgrades": [
             {
-                "price": 200,
+                "price": 350,
                 "min_dead": 0,
-                "upgrade_range": BLOC_SIZE * 0.2,
-                "upgrade_damages": 10,
+                "upgrade_range": BLOC_SIZE * 0.3,
+                "upgrade_damages": 30,
                 "upgrade_speed": 100
             },
             {
-                "price": 250,
-                "min_dead": 0,
-                "upgrade_range": BLOC_SIZE * 0.2,
-                "upgrade_damages": 20,
+                "price": 700,
+                "min_dead": 30,
+                "upgrade_range": BLOC_SIZE * 0.5,
+                "upgrade_damages": 80,
                 "upgrade_speed": 100
             }
         ]
     },
 
-    # DEFENDER POISON
+    # DEFENSEUR POISON
     {
         "width": BLOC_SIZE / 1.35,
         "height": BLOC_SIZE,
-        "damages": 50,
+        "damages": 70,
         "range": BLOC_SIZE * 2,
         "attack_speed": 1000,
-        "price": 250,
-        "color": "blue",
-        "sell_price": 40,
+        "price": 500,
+        "color": "green",
+        "ability": "poison",
+        "sell_price": 100,
         "upgrades": [
             {
-                "price": 200,
+                "price": 350,
                 "min_dead": 0,
-                "upgrade_range": BLOC_SIZE * 0.2,
-                "upgrade_damages": 10,
+                "upgrade_range": BLOC_SIZE * 0.3,
+                "upgrade_damages": 30,
                 "upgrade_speed": 100
             },
             {
-                "price": 250,
-                "min_dead": 0,
-                "upgrade_range": BLOC_SIZE * 0.2,
-                "upgrade_damages": 20,
+                "price": 700,
+                "min_dead": 30,
+                "upgrade_range": BLOC_SIZE * 0.5,
+                "upgrade_damages": 80,
                 "upgrade_speed": 100
             }
         ]
@@ -191,14 +270,12 @@ DEFENDERS = [
 ]
 
 
-
+# Caracteristiques des monstres
 MONSTERS = [
     # PIEUVRE
     {
         "width": 72,
         "height": 80,
-        "life": 60,
-        "gold": 7,
         "score": 5,
         "wait_before_new_creation": 2500,
         "wait_loop_walk": 25,
@@ -210,8 +287,6 @@ MONSTERS = [
     {
         "width": 56,
         "height": 80,
-        "life": 80,
-        "gold": 8,
         "score": 7,
         "wait_before_new_creation": 1500,
         "wait_loop_walk": 20,
@@ -223,10 +298,8 @@ MONSTERS = [
     {
         "width": 80,
         "height": 80,
-        "life": 400,
-        "gold": 20,
         "score": 10,
-        "wait_before_new_creation": 7000,
+        "wait_before_new_creation": 5000,
         "wait_loop_walk": 30,
         "img": "ressources/monsters/squelette.gif",
         "frames_gif": 9,
@@ -236,9 +309,7 @@ MONSTERS = [
     {
         "width": 80,
         "height": 80,
-        "life": 60,
-        "gold": 5,
-        "score": 5,
+        "score": 15,
         "wait_before_new_creation": 200,
         "wait_loop_walk": 20,
         "img": "ressources/monsters/champignon.gif",
@@ -249,9 +320,7 @@ MONSTERS = [
     {
         "width": 77,
         "height": 80,
-        "life": 600,
-        "gold": 40,
-        "score": 15,
+        "score": 20,
         "wait_before_new_creation": 3000,
         "wait_loop_walk": 20,
         "img": "ressources/monsters/chevalier.gif",
@@ -262,8 +331,6 @@ MONSTERS = [
     {
         "width": 80,
         "height": 80,
-        "life": 10000,
-        "gold": 500,
         "score": 100,
         "wait_before_new_creation": 2000,
         "wait_loop_walk": 100,
@@ -275,9 +342,7 @@ MONSTERS = [
     {
         "width": 80,
         "height": 80,
-        "life": 500,
-        "gold": 40,
-        "score": 20,
+        "score": 30,
         "wait_before_new_creation": 2000,
         "wait_loop_walk": 20,
         "img": "ressources/monsters/poulpe_bis.gif",
@@ -288,9 +353,7 @@ MONSTERS = [
     {
         "width": 77,
         "height": 80,
-        "life": 1000,
-        "gold": 30,
-        "score": 30,
+        "score": 40,
         "wait_before_new_creation": 3000,
         "wait_loop_walk": 30,
         "img": "ressources/monsters/plante_carnivore.gif",
@@ -301,9 +364,7 @@ MONSTERS = [
     {
         "width": 80,
         "height": 80,
-        "life": 500,
-        "gold": 20,
-        "score": 40,
+        "score": 50,
         "wait_before_new_creation": 1000,
         "wait_loop_walk": 20,
         "img": "ressources/monsters/dragon.gif",
@@ -314,33 +375,11 @@ MONSTERS = [
     {
         "width": 80,
         "height": 80,
-        "life": 1000,
-        "gold": 7,
-        "score": 5,
+        "score": 60,
         "wait_before_new_creation": 2000,
         "wait_loop_walk": 10,
         "img": "ressources/monsters/gary.gif",
         "frames_gif": 40,
         "wait_frame_animation": 2
     }
-]
-
-
-
-# -1: chemin pour les enemies
-# 0: case vide
-# 1-9: défenseurs alliés
-# 'x': case objet à démolir avant de pouvoir construire
-MAP = [
-    [0, 0, 0, 0, "x", -1, "x", 0, 0, 0, 0],
-    [-1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1],
-    [-1, 0, 0, 0, "x", 0, "x", 0, 0, 0, -1],
-    [-1, 0, "x", "x", 0, "x", 0, "x", "x", 0, -1],
-    [-1, 0, 0, 0, "x", 0, "x", 0, 0, 0, -1],
-    [-1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1],
-    [-1, 0, 0, 0, 0, 0, 0, 0, 0, 0, -1],
-    [-1, 0, "x", "x", 0, "x", 0, "x", "x", 0, -1],
-    [-1, 0, 0, 0, 0, 0, 0, 0, 0, 0, -1],
-    [-1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1],
-    [0, 0, 0, 0, 0, -1, 0, 0, 0, 0, 0]
 ]

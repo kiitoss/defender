@@ -1,4 +1,8 @@
-"""Utilisation de tkinter pour l'interface graphique"""
+"""
+    Fichier python du jeu de tower defense.
+    Utilisation de tkinter pour l'interface graphique.
+    Utilisation du fichier 'gameplay.py' pour les valeurs numeriques du jeu.
+"""
 from tkinter import Tk, Canvas, Button, Label, PhotoImage
 import random
 import sys
@@ -7,31 +11,80 @@ import gameplay
 
 
 
-def main():
-    """Fonction principale"""
-    creation_map()
+def main(code_difficulty):
+    """Fonction principale, appellee apres creation de la fenetre et des canvas (tkinter)"""
+    initialisation_labels()
+
+    my_map = gameplay.MAPS[code_difficulty]
+    creation_map(my_map)
+
+    GAME_MANAGER["game_launched"] = True
 
 
-def click_event(event):
-    """Détection du clique de la souris sur le canvas de jeu"""
-    pos_grid_x = int(event.x / BLOC_SIZE)
-    pos_grid_y = int(event.y / BLOC_SIZE)
+def initialisation_labels():
+    """Nettoie le canvas principal et configure les labels et les boutons de la fenetre"""
+    for element in CANVAS.winfo_children():
+        element.destroy()
+
+    B_START_WAVE.place(x=15, y=35)
+    B_SPEED.place(x=205, y=35)
+    B_QUIT.place(x=305, y=35)
+    L_WAVE_RUN.config(text="Avancée de la vague: 0/"+str(WAVES[0][1]))
+    L_GOLD.config(text="Or: "+str(PLAYER.get("GOLD")))
+    L_LIFE.config(text="Vies: "+str(PLAYER.get("LIFE")))
+    L_MONSTER_KILLED.config(text="Monstres Tués: 0")
+    L_SCORE.config(text="Score: "+str(PLAYER.get("SCORE")))
+
+
+def creation_all_waves(coeff_wave):
+    """
+        Cree toutes les vagues du tour (initialement 12 vagues par tour)
+        --> la vie des monstres et l'argent gagne augmente à chaque tour
+    """
+    full_wave = []
+    for wave in GAME_MANAGER.get("waves"):
+        wave_parameters = []
+        numero_monster = wave[0]
+        life_monster = wave[2]
+        gold_monster = wave[3]
+
+        monster = ALL_MONSTERS[numero_monster]
+        monster["life"] = life_monster * coeff_wave
+        monster["gold"] = gold_monster * coeff_wave
+        wave_parameters.append(monster)
+
+        for other_parameter in wave[1:]:
+            wave_parameters.append(other_parameter)
+
+        full_wave.append(wave_parameters)
+    return full_wave
+
+
+def on_click(event):
+    """Detecte un clique de la souris sur le canvas de jeu et appel les fonctions correspondantes"""
+    if GAME_MANAGER.get("game_launched") is False:
+        return
+
+    position_x = int(event.x / BLOC_SIZE)
+    position_y = int(event.y / BLOC_SIZE)
+
     if GAME_MANAGER.get("case_shown") is not None:
         CANVAS.delete(GAME_MANAGER.get("case_shown"))
         GAME_MANAGER["case_shown"] = None
 
-    if MAP[pos_grid_y][pos_grid_x] in ("x", 0):
+    if GAME_MANAGER.get("map")[position_y][position_x] in ("x", 0):
         GAME_MANAGER["case_shown"] = CANVAS.create_rectangle(
-            pos_grid_x*BLOC_SIZE,
-            pos_grid_y*BLOC_SIZE,
-            (pos_grid_x+1)*BLOC_SIZE,
-            (pos_grid_y+1)*BLOC_SIZE,
+            position_x*BLOC_SIZE,
+            position_y*BLOC_SIZE,
+            (position_x+1)*BLOC_SIZE,
+            (position_y+1)*BLOC_SIZE,
             width=3,
             outline="black",
             fill="black",
             stipple="gray75",
         )
-    manager_canvas_request("creation", pos_grid_x, pos_grid_y)
+
+    manager_frame_option("creation", position_x, position_y)
 
 
 def change_speed():
@@ -50,31 +103,33 @@ def upgrade_stats():
     L_LIFE.config(text="Vies: "+str(PLAYER.get("LIFE")))
 
 
-def upgrade_life(item):
+def upgrade_life(monster):
     """Mise à jour de la jauge de vie des enemies"""
-    if item.life <= item.max_life / 3:
+    if monster.life <= monster.max_life / 3:
         color = "red"
-    elif item.life <= item.max_life / 2:
+    elif monster.life <= monster.max_life / 2:
         color = "orange"
     else:
         color = "green"
 
     return CANVAS.create_rectangle(
-        item.pos_x,
-        item.pos_y - 10,
-        item.pos_x + item.width * item.life / item.max_life,
-        item.pos_y - 5,
+        monster.pos_x,
+        monster.pos_y - 10,
+        monster.pos_x + monster.width * monster.life / monster.max_life,
+        monster.pos_y - 5,
         fill=color
         )
 
 
-def manager_canvas_request(action, pos_x=None, pos_y=None):
-    """Fonction gérant le canvas de requêtes"""
-    if action == "creation":
-        if GAME_MANAGER["status_canvas_option"] != "clean":
-            clean_canvas_request()
 
-        code_cell = MAP[pos_y][pos_x]
+
+def manager_frame_option(action, pos_x=None, pos_y=None):
+    """Gestion des elements a afficher sur FRAME_OPTION"""
+    if action == "creation":
+        if GAME_MANAGER["status_frame_option"] != "clean":
+            clean_frame_option()
+
+        code_cell = GAME_MANAGER.get("map")[pos_y][pos_x]
         if code_cell == "x":
             show_remove_obstacle(pos_x, pos_y)
         elif code_cell == 0:
@@ -85,26 +140,28 @@ def manager_canvas_request(action, pos_x=None, pos_y=None):
                 if defender.grid_x == pos_x and defender.grid_y == pos_y:
                     defender_shown = defender
                     break
-            if defender_shown is None:
-                print("Error: no defender with theses positions")
-                return
             show_my_defender(defender_shown)
         else: return
 
     elif action == "upgrade":
         defender_shown = GAME_MANAGER.get("defender_shown")
-        if defender_shown is not None:
-            L_KILLED.config(text="Monstres tués: "+str(defender_shown.monster_killed))
-            upgrades = DEFENDERS[defender_shown.code].get("upgrades")[defender_shown.lvl - 1]
-            min_dead = upgrades.get("min_dead")
-            if  min_dead != 0 and defender_shown.monster_killed == min_dead:
-                clean_canvas_request()
-                show_my_defender(defender_shown)
+        if defender_shown is None:
+            return
+        L_KILLED.config(text="Monstres tués: "+str(defender_shown.monster_killed))
 
-def clean_canvas_request():
-    """Nettoie le canvas des requêtes"""
-    status = GAME_MANAGER.get("status_canvas_option")
-    list_elements = FRAME_REQUEST.winfo_children()
+        if len(DEFENDERS[defender_shown.code].get("upgrades")) < defender_shown.lvl:
+            return
+        upgrades = DEFENDERS[defender_shown.code].get("upgrades")[defender_shown.lvl - 1]
+        min_dead = upgrades.get("min_dead")
+        if  min_dead != 0 and defender_shown.monster_killed == min_dead:
+            clean_frame_option()
+            show_my_defender(defender_shown)
+
+
+def clean_frame_option():
+    """Nettoie FRAME_OPTION"""
+    status = GAME_MANAGER.get("status_frame_option")
+    list_elements = FRAME_OPTION.winfo_children()
     for button in list_elements:
         if isinstance(button, Button):
             button.destroy()
@@ -121,44 +178,44 @@ def clean_canvas_request():
             GAME_MANAGER["range_shown"] = None
         GAME_MANAGER["defender_shown"] = None
 
-    GAME_MANAGER["status_canvas_option"] = "clean"
+    GAME_MANAGER["status_frame_option"] = "clean"
 
 
 def show_all_defenders(pos_x, pos_y):
-    """Affiche tous les défenseurs que le joueur peut acheter"""
+    """Affiche tous les defenseurs que le joueur peut acheter"""
     my_images = [IMG_TOUR_1, IMG_TOUR_2, IMG_TOUR_D, IMG_TOUR_G, IMG_TOUR_P]
-    for i, defender in enumerate(DEFENDERS):
+    for numero_defender, defender in enumerate(DEFENDERS):
         btn_defender = Button(
-            FRAME_REQUEST,
+            FRAME_OPTION,
             text="prix: "+str(defender.get("price")),
-            image=my_images[i][0],
+            image=my_images[numero_defender][0],
             compound="top",
-            command=lambda code=i: creation_defender(code, pos_x, pos_y),
+            command=lambda code=numero_defender: creation_defender(code, pos_x, pos_y),
             width=80,
             height=120
         )
-        if i < 2:
-            row = 1
-            col = i*1.5+1.1
+        if numero_defender < 2:
+            line = 1
+            column = numero_defender*1.5+1.1
         else:
-            row = 3
-            col = i*1.5 - 2.7
-        btn_defender.place(x=col*BLOC_SIZE, y=row*BLOC_SIZE)
-    GAME_MANAGER["status_canvas_option"] = "show_all_defenders"
+            line = 3
+            column = numero_defender*1.5 - 2.7
+        btn_defender.place(x=column*BLOC_SIZE, y=line*BLOC_SIZE)
+    GAME_MANAGER["status_frame_option"] = "show_all_defenders"
 
 
-def show_my_defender(defender_shown):
-    """Affiche les défenseurs sur lequel le joueur clique ainsi que ses statistiques"""
-    GAME_MANAGER["defender_shown"] = defender_shown
-    L_DAMAGE.config(text="Attaque: "+str(defender_shown.damages))
-    L_RANGE.config(text="Range: "+str(defender_shown.range))
-    L_SPEED.config(text="Fréquence de tir: "+str(defender_shown.attack_speed))
-    L_KILLED.config(text="Monstres tués: "+str(defender_shown.monster_killed))
+def show_my_defender(defender_clicked):
+    """Affiche les defenseurs sur lequel le joueur a clique avec ses statistiques"""
+    GAME_MANAGER["defender_shown"] = defender_clicked
+    L_DAMAGE.config(text="Attaque: "+str(defender_clicked.damages))
+    L_RANGE.config(text="Range: "+str(defender_clicked.range))
+    L_SPEED.config(text="Fréquence de tir: "+str(defender_clicked.attack_speed))
+    L_KILLED.config(text="Monstres tués: "+str(defender_clicked.monster_killed))
 
-    list_upgrades = DEFENDERS[defender_shown.code].get("upgrades")
+    list_upgrades = DEFENDERS[defender_clicked.code].get("upgrades")
     max_col = int(STATS_WIDTH / BLOC_SIZE)
-    if len(list_upgrades) >= defender_shown.lvl:
-        my_defender_upgrades = list_upgrades[defender_shown.lvl - 1]
+    if len(list_upgrades) >= defender_clicked.lvl:
+        my_defender_upgrades = list_upgrades[defender_clicked.lvl - 1]
         min_dead = my_defender_upgrades.get("min_dead")
         price_upgrade = my_defender_upgrades.get("price")
         if min_dead != 0:
@@ -166,7 +223,7 @@ def show_my_defender(defender_shown):
         else:
             my_text = "prix: "+str(price_upgrade)
 
-        if defender_shown.monster_killed < my_defender_upgrades.get("min_dead"):
+        if defender_clicked.monster_killed < my_defender_upgrades.get("min_dead"):
             button_state = "disabled"
         else:
             button_state = "normal"
@@ -177,10 +234,10 @@ def show_my_defender(defender_shown):
             for i, ability in enumerate(abilities):
                 col = i*1.5 + ((max_col - len(abilities)) / 6)
                 btn_upgrade = Button(
-                    FRAME_REQUEST,
+                    FRAME_OPTION,
                     text=ability+"\n\n"+my_text,
                     command=lambda code=i: transformation_defender(
-                        defender_shown,
+                        defender_clicked,
                         code,
                         my_defender_upgrades),
                     width=10,
@@ -191,9 +248,9 @@ def show_my_defender(defender_shown):
         else:
             col = (max_col-2.5) / 2
             btn_upgrade = Button(
-                FRAME_REQUEST,
+                FRAME_OPTION,
                 text="AMELIORER:\n\n"+my_text,
-                command=lambda: upgrade_defender(defender_shown, my_defender_upgrades))
+                command=lambda: upgrade_defender(defender_clicked, my_defender_upgrades))
             btn_upgrade.config(width=21, height=4)
             btn_upgrade.place(x=col*BLOC_SIZE, y=180)
             btn_upgrade.config(state=button_state)
@@ -201,25 +258,25 @@ def show_my_defender(defender_shown):
         L_LVL_MAX.config(text="LEVEL MAX")
     col = (max_col-2.5) / 2
     btn_sell = Button(
-        FRAME_REQUEST,
-        text="VENDRE:\n\nprix: "+str(DEFENDERS[defender_shown.code].get("sell_price")),
-        command=lambda: sell_defender(defender_shown))
+        FRAME_OPTION,
+        text="VENDRE:\n\nprix: "+str(DEFENDERS[defender_clicked.code].get("sell_price")),
+        command=lambda: sell_defender(defender_clicked))
     btn_sell.config(width=21, height=4)
     btn_sell.place(x=col*BLOC_SIZE, y=320)
 
     GAME_MANAGER["range_shown"] = CANVAS.create_oval(
-        defender_shown.center_x-defender_shown.range,
-        defender_shown.center_y-defender_shown.range,
-        defender_shown.center_x+defender_shown.range,
-        defender_shown.center_y+defender_shown.range,
+        defender_clicked.center_x-defender_clicked.range,
+        defender_clicked.center_y-defender_clicked.range,
+        defender_clicked.center_x+defender_clicked.range,
+        defender_clicked.center_y+defender_clicked.range,
         width=3,
         outline="green",
         fill="green",
         stipple="gray25",
     )
-    CANVAS.tag_raise(defender_shown.body)
+    CANVAS.tag_raise(defender_clicked.body)
 
-    GAME_MANAGER["status_canvas_option"] = "show_my_defender"
+    GAME_MANAGER["status_frame_option"] = "show_my_defender"
 
 
 def show_remove_obstacle(pos_x, pos_y):
@@ -227,35 +284,35 @@ def show_remove_obstacle(pos_x, pos_y):
     max_col = int(STATS_WIDTH / BLOC_SIZE)
     col = (max_col-2.5) / 2
     btn_remove_obstacle = Button(
-        FRAME_REQUEST,
+        FRAME_OPTION,
         text="Supprimer obstacle:\nprix: "+str(GAME_MANAGER.get("price_remove_obstacle")),
         command=lambda: remove_obstacle(pos_x, pos_y))
     btn_remove_obstacle.config(width=21, height=4)
     btn_remove_obstacle.place(x=col*BLOC_SIZE, y=180)
-    GAME_MANAGER["status_canvas_option"] = "show_remove_obstacle"
+    GAME_MANAGER["status_frame_option"] = "show_remove_obstacle"
 
 
 
 
-def creation_defender(code, grid_x, grid_y):
-    """Création d'un défenseur"""
+def creation_defender(code, position_x, position_y):
+    """Creation d'un defenseur"""
     if GAME_MANAGER.get("case_shown") is not None:
         CANVAS.delete(GAME_MANAGER.get("case_shown"))
         GAME_MANAGER["case_shown"] = None
     price = DEFENDERS[code].get("price")
     if PLAYER.get("GOLD") >= price:
         PLAYER["GOLD"] -= price
-        MAP[grid_y][grid_x] = 1
-        creation_bloc(grid_x, grid_y)
-        clean_canvas_request()
-        Defender(code, grid_x, grid_y)
+        GAME_MANAGER.get("map")[position_y][position_x] = 1
+        creation_bloc(position_x, position_y)
+        clean_frame_option()
+        Defender(code, position_x, position_y)
         upgrade_stats()
     else:
-        clean_canvas_request()
+        clean_frame_option()
 
 
 def upgrade_defender(defender, upgrades):
-    """Amélioration du défenseur"""
+    """Amelioration du defenseur"""
     if PLAYER.get("GOLD") < upgrades.get("price") \
         or defender.monster_killed < upgrades.get("min_dead"):
         return
@@ -274,7 +331,7 @@ def upgrade_defender(defender, upgrades):
     if defender.attack_speed < 10:
         defender.attack_speed = 10
     upgrade_stats()
-    manager_canvas_request("creation", defender.grid_x, defender.grid_y)
+    manager_frame_option("creation", defender.grid_x, defender.grid_y)
 
 
 def transformation_defender(defender, code, upgrades):
@@ -286,121 +343,128 @@ def transformation_defender(defender, code, upgrades):
     if code == 0:
         defender.ability = "attack"
         defender.damages += 50
+        defender.color = "red"
     elif code == 1:
         defender.ability = "freeze"
+        defender.color = "blue"
     elif code == 2:
         defender.ability = "poison"
-    clean_canvas_request()
+        defender.color = "green"
+    clean_frame_option()
     upgrade_defender(defender, upgrades)
 
 
 def sell_defender(defender):
-    """Vente du défenseur"""
+    """Vente du defenseur"""
     PLAYER["GOLD"] += DEFENDERS[defender.code].get("sell_price")
     upgrade_stats()
     CANVAS.delete(defender.body)
-    MAP[defender.grid_y][defender.grid_x] = 0
+    GAME_MANAGER.get("map")[defender.grid_y][defender.grid_x] = 0
     creation_bloc(defender.grid_x, defender.grid_y)
     defender.exist = False
     LIST_OF_DEFENDERS.remove(defender)
-    clean_canvas_request()
+    clean_frame_option()
+
 
 def remove_obstacle(grid_x, grid_y):
     """Suppression de l'obstacle, conversion en case classique"""
     price = GAME_MANAGER.get("price_remove_obstacle")
-    if PLAYER.get("GOLD") >= price:
-        if GAME_MANAGER.get("case_shown") is not None:
-            CANVAS.delete(GAME_MANAGER.get("case_shown"))
-            GAME_MANAGER["case_shown"] = None
-        PLAYER["GOLD"] -= price
-        MAP[grid_y][grid_x] = 0
-        creation_bloc(grid_x, grid_y)
-        clean_canvas_request()
-        upgrade_stats()
+    if PLAYER.get("GOLD") < price:
+        return
+    if GAME_MANAGER.get("case_shown") is not None:
+        CANVAS.delete(GAME_MANAGER.get("case_shown"))
+        GAME_MANAGER["case_shown"] = None
+    PLAYER["GOLD"] -= price
+    GAME_MANAGER.get("map")[grid_y][grid_x] = 0
+    creation_bloc(grid_x, grid_y)
+    clean_frame_option()
+    upgrade_stats()
 
 
 
 
-def creation_map():
-    """Création de la carte du jeu selon la constante MAP"""
-    for pos_y, line in enumerate(MAP):
-        for pos_x in range(len(line)):
-            creation_bloc(pos_x, pos_y)
+def creation_map(my_map):
+    """Creation de la carte du jeu selon la constante my_map"""
+    GAME_MANAGER["map"] = my_map
+    for position_y, line in enumerate(my_map):
+        for position_x in range(len(line)):
+            creation_bloc(position_x, position_y)
 
 
-def creation_bloc(grid_x, grid_y):
-    """Création de chaque bloc constituant la carte"""
-    value = MAP[grid_y][grid_x]
+def creation_bloc(position_x, position_y):
+    """Creation de chaque bloc de la carte"""
+    value = GAME_MANAGER.get("map")[position_y][position_x]
     if value == -1:
         CANVAS.create_image(
-            grid_x*BLOC_SIZE+BLOC_SIZE/2,
-            grid_y*BLOC_SIZE+BLOC_SIZE/2,
+            position_x*BLOC_SIZE+BLOC_SIZE/2,
+            position_y*BLOC_SIZE+BLOC_SIZE/2,
             image=IMG_EMPTY_BLOC
         )
 
     elif value in ("x", 0):
         CANVAS.create_image(
-            grid_x*BLOC_SIZE+BLOC_SIZE/2,
-            grid_y*BLOC_SIZE+BLOC_SIZE/2,
+            position_x*BLOC_SIZE+BLOC_SIZE/2,
+            position_y*BLOC_SIZE+BLOC_SIZE/2,
             image=IMG_1_BLOC
         )
 
     if value == "x":
         CANVAS.create_image(
-            grid_x*BLOC_SIZE+BLOC_SIZE/2,
-            grid_y*BLOC_SIZE+BLOC_SIZE/2,
+            position_x*BLOC_SIZE+BLOC_SIZE/2,
+            position_y*BLOC_SIZE+BLOC_SIZE/2,
             image=IMG_X_BLOC
         )
 
 
 
 
-def creation_wave(code, still, click=None):
-    """Création de la vague d'ennemies"""
+def creation_wave(monster, remaining_monsters, click=None):
+    """Creation de la vague d'ennemies"""
     if click is not None:
-        GAME_MANAGER["wave_now"] += 1
         B_START_WAVE.config(text="Vague suivante")
 
     total_wave_size = 0
     for i in range(GAME_MANAGER.get("wave_now")):
-        total_wave_size += GAME_MANAGER.get("waves")[i][1]
-    if len(LIST_OF_MONSTERS) + len(DEAD_MONSTERS) < total_wave_size and still > 0:
-        still -= 1
-        Monster(code)
+        total_wave_size += WAVES[i][1]
+    if len(LIST_OF_MONSTERS) + len(DEAD_MONSTERS) < total_wave_size and remaining_monsters > 0:
+        remaining_monsters -= 1
+        Monster(monster)
         if GAME_MANAGER["range_shown"] is not None:
             CANVAS.tag_raise(GAME_MANAGER.get("range_shown"))
             CANVAS.tag_raise(GAME_MANAGER.get("defender_shown").body)
-        monster_waiting_time = MONSTERS[code].get("wait_before_new_creation")
+        monster_waiting_time = monster.get("wait_before_new_creation")
         waiting_time = int(monster_waiting_time / GAME_MANAGER.get("game_speed"))
-        F.after(waiting_time, lambda: creation_wave(code, still))
+        F.after(waiting_time, lambda: creation_wave(monster, remaining_monsters))
+
 
 def launch_wave():
     """Lance la creation de la vague d'ennemies"""
-    if len(GAME_MANAGER.get("waves")) <= GAME_MANAGER.get("wave_now"):
+    if len(WAVES) <= GAME_MANAGER.get("wave_now"):
         return
-    wave_properties = GAME_MANAGER.get("waves")[GAME_MANAGER.get("wave_now")]
-    if len(GAME_MANAGER.get("waves")) > GAME_MANAGER.get("wave_now"):
-        creation_wave(wave_properties[0], wave_properties[1], 1)
+    GAME_MANAGER["wave_now"] += 1
+    monster = WAVES[GAME_MANAGER.get("wave_now") - 1][0]
+    wave_size = WAVES[GAME_MANAGER.get("wave_now") - 1][1]
+    creation_wave(monster, wave_size, 1)
+
+
+
 
 class Monster():
-    """Création d'un nouveau monstre"""
+    """Creation d'un nouveau monstre"""
     # pylint: disable=too-many-instance-attributes
-    def __init__(self, code):
-        monster = MONSTERS[code]
-        self.code = code
-
+    def __init__(self, monster):
+        self.monster_type = monster
         self.width = monster.get("width")
         self.height = monster.get("height")
-        self.color = monster.get("color")
         self.max_life = monster.get("life")
         self.life = self.max_life
         self.gold = monster.get("gold")
         self.score = monster.get("score")
         self.wait_walk = monster.get("wait_loop_walk")
-
-        self.pos_x = int(len(MAP) / 2) * BLOC_SIZE + BLOC_SIZE / 2 - self.width / 2
+        center_map = int(len(GAME_MANAGER.get("map")) / 2) * BLOC_SIZE + BLOC_SIZE / 2
+        self.pos_x = center_map - self.width / 2
         self.pos_y = 0
-        self.grid_x = int(len(MAP) / 2)
+        self.grid_x = int(len(GAME_MANAGER.get("map")) / 2)
         self.grid_y = 0
         self.is_alive = True
         self.direction = DOWN
@@ -426,14 +490,14 @@ class Monster():
         wave_run = str(len(LIST_OF_MONSTERS)+len(DEAD_MONSTERS))
         total_wave_size = 0
         for i in range(GAME_MANAGER.get("wave_now")):
-            total_wave_size += GAME_MANAGER.get("waves")[i][1]
+            total_wave_size += WAVES[i][1]
         L_WAVE_RUN.config(text="Avancée de la vague: "+wave_run+"/"+str(total_wave_size))
 
         self.auto_move()
 
 
     def auto_move(self):
-        """Analyse les chemins possible et déplace le monstre"""
+        """Deplace le monstre s'il n'est pas freeze et baisse sa vie s'il est empoisonne"""
         if self.time_freeze == 0:
             middle_y_monster = int(self.pos_y + self.height / 2) - 1
             middle_y_bloc = int(self.grid_y * BLOC_SIZE + BLOC_SIZE / 2)
@@ -449,7 +513,7 @@ class Monster():
             self.pos_y += self.direction[1]
             self.before_new_frame -= 1
             if self.before_new_frame == 0:
-                self.before_new_frame = MONSTERS[self.code].get("wait_frame_animation")
+                self.before_new_frame = self.monster_type.get("wait_frame_animation")
                 self.frame += 1
                 if self.frame >= self.max_frames:
                     self.frame = 0
@@ -476,10 +540,11 @@ class Monster():
             if self.time_poison < 0:
                 self.time_poison = 0
 
-        if self.grid_y < len(MAP) - 1 and self.life > 0:
+        if self.grid_y < len(GAME_MANAGER.get("map")) - 1 and self.life > 0:
             F.after(int(self.wait_walk / GAME_MANAGER.get("game_speed")), self.auto_move)
         else:
             self.auto_kill()
+
 
     def adapt_on_grid(self):
         """Check sur quelle position de la grille se trouve l'ennemie"""
@@ -490,8 +555,9 @@ class Monster():
         if self.pos_y > (self.grid_y + 1) * BLOC_SIZE:
             self.grid_y += 1
 
+
     def auto_kill(self):
-        """Détruit le monstre"""
+        """Tue le monstre"""
         if self.life <= 0:
             PLAYER["GOLD"] += self.gold
             PLAYER["SCORE"] += self.score
@@ -511,46 +577,57 @@ class Monster():
         monster_appeared = len(LIST_OF_MONSTERS) + len(DEAD_MONSTERS)
         total_wave_size = 0
         for i in range(GAME_MANAGER.get("wave_now")):
-            total_wave_size += GAME_MANAGER.get("waves")[i][1]
+            total_wave_size += WAVES[i][1]
         if len(LIST_OF_MONSTERS) == 0 and monster_appeared == total_wave_size:
             DEAD_MONSTERS[:] = []
             prime = 0
             for i in range(GAME_MANAGER.get("wave_now")):
-                prime += GAME_MANAGER["waves"][i][2]
-                GAME_MANAGER["waves"].remove(GAME_MANAGER.get("waves")[i])
+                prime += WAVES[0][4]
+                WAVES.remove(WAVES[0])
             GAME_MANAGER["wave_now"] = 0
             PLAYER["GOLD"] += prime
             upgrade_stats()
             B_START_WAVE.config(text="Lancer la vague")
-            if len(GAME_MANAGER.get("waves")) > 0:
-                len_wave = GAME_MANAGER.get("waves")[0][1]
+            if len(WAVES) > 0:
+                len_wave = WAVES[0][1]
                 L_WAVE_RUN.config(text="Avancée de la vague: 0/"+str(len_wave))
             else:
-                print("VICTORY")
-                sys.exit()
+                print("VICTORY: ", (GAME_MANAGER.get("coeff_wave")-1)/4+1)
+                GAME_MANAGER["coeff_wave"] += 4
+                PLAYER["GOLD"] += (1000 * GAME_MANAGER.get("coeff_wave"))
+                upgrade_stats()
+                creation_all_waves(GAME_MANAGER.get("coeff_wave"))
+                # sys.exit()
         upgrade_stats()
 
+
     def analyse_direction(self):
-        """Analyse les changements potentiels de direction"""
+        """Analyse les directions de deplacement possibles"""
         available_position = []
         coord_x = self.grid_x
         coord_y = self.grid_y
         direction = self.direction
 
-        if coord_x - 1 >= 0 and MAP[coord_y][coord_x - 1] == -1 and direction != RIGHT:
+        my_map = GAME_MANAGER.get("map")
+        if (coord_x - 1 >= 0 and my_map[coord_y][coord_x - 1] == -1 \
+            and direction != RIGHT):
             available_position.append(LEFT)
-        if coord_x + 1 < len(MAP[0]) and MAP[coord_y][coord_x + 1] == -1 and direction != LEFT:
+        if (coord_x + 1 < len(my_map[0]) and my_map[coord_y][coord_x + 1] == -1 \
+            and direction != LEFT):
             available_position.append(RIGHT)
-        if coord_y + 1 < len(MAP) and MAP[coord_y + 1][coord_x] == -1:
-            if coord_y == len(MAP) - 2:
+        if coord_y + 1 < len(my_map) and my_map[coord_y + 1][coord_x] == -1:
+            if coord_y == len(my_map) - 2:
                 available_position = [DOWN]
             else:
                 available_position.append(DOWN)
-        if coord_y < len(MAP) - 1:
+        if coord_y < len(my_map) - 1:
             self.direction = available_position[random.randrange(len(available_position))]
 
+
+
+
 class Defender():
-    """Création d'un nouveau défenseur"""
+    """Creation d'un nouveau defenseur"""
     # pylint: disable=too-many-instance-attributes
     def __init__(self, code, grid_x, grid_y):
         defender = DEFENDERS[code]
@@ -560,11 +637,11 @@ class Defender():
         self.range = defender.get("range")
         self.price = defender.get("price")
         self.color = defender.get("color")
+        self.ability = defender.get("ability")
         self.damages = defender.get("damages")
         self.attack_speed = defender.get("attack_speed")
 
         self.exist = True
-        self.ability = None
         self.lvl = 1
         self.grid_x = grid_x
         self.grid_y = grid_y
@@ -598,8 +675,9 @@ class Defender():
 
         self.auto_attack()
 
+
     def auto_attack(self):
-        """Gestion de l'auto-attaque des défenseurs"""
+        """Gestion de l'auto-attaque du defenseur"""
         if not self.exist:
             return
 
@@ -647,16 +725,17 @@ class Defender():
                     self.target = None
                     F.after(10, self.auto_attack)
 
+
     def attack(self):
-        """Gestion du missile lancé par le défenseur"""
+        """Gestion du missile lance par le defenseur"""
         target_is_touched = self.move_missile()
 
-        self.missile = CANVAS.create_rectangle(
-            self.missile_coord[0],
-            self.missile_coord[1],
-            self.missile_coord[0] + 10,
-            self.missile_coord[1] + 10,
-            fill="blue"
+        self.missile = CANVAS.create_oval(
+            self.missile_coord[0]-5,
+            self.missile_coord[1]-5,
+            self.missile_coord[0]+5,
+            self.missile_coord[1]+5,
+            fill=self.color
         )
 
         if target_is_touched:
@@ -674,27 +753,28 @@ class Defender():
                 self.monster_killed += 1
                 self.target.is_alive = False
                 if GAME_MANAGER["defender_shown"] == self:
-                    manager_canvas_request("upgrade")
+                    manager_frame_option("upgrade")
             CANVAS.delete(self.missile)
             self.missile = None
             F.after(int(self.attack_speed / GAME_MANAGER.get("game_speed")), self.auto_attack)
         else:
             F.after(1, self.attack)
 
+
     def run_ability(self):
         """Lance le pouvoir du défenseur"""
-        if random.randrange(100) < 10:
-            if self.ability == "poison" and self.target.time_poison == 0:
-                self.target.time_poison += 3000
-                if self.target.poisoner is None:
-                    self.target.poisoner = self
-                print("poison")
-            elif self.ability == "freeze" and self.target.time_freeze == 0:
-                self.target.time_freeze += 2000
-                print("freeze")
+        if random.randrange(100) > 10:
+            return
+        if self.ability == "poison" and self.target.time_poison == 0:
+            self.target.time_poison += 3000
+            if self.target.poisoner is None:
+                self.target.poisoner = self
+        elif self.ability == "freeze" and self.target.time_freeze == 0:
+            self.target.time_freeze += 2000
+
 
     def move_missile(self):
-        """Avance le missile et renvoie True lorsque l'ennemie est touché"""
+        """Avance le missile et renvoie True lorsque l'ennemie est touche"""
         if self.missile is None:
             self.missile_coord = [self.center_x, self.center_y]
         else:
@@ -720,17 +800,18 @@ class Defender():
 
 
 # Variables concernant le gameplay (argent, vies, différents défenseurs, monstres...)
-MAP = gameplay.MAP
 PLAYER = gameplay.PLAYER
 GAME_MANAGER = gameplay.GAME_MANAGER
+MY_MAP = GAME_MANAGER.get("map")
 BLOC_SIZE = gameplay.GAME_MANAGER.get("bloc_size")
+ALL_MONSTERS = gameplay.MONSTERS
 DEFENDERS = gameplay.DEFENDERS
-MONSTERS = gameplay.MONSTERS
+WAVES = creation_all_waves(1)
 
 # Création des variables adaptées aux paramètres précédents
 STATS_WIDTH = 5 * BLOC_SIZE
-SCREEN_WIDTH = int((len(MAP[0]) + 5) * BLOC_SIZE)
-SCREEN_HEIGHT = int(len(MAP) * BLOC_SIZE)
+SCREEN_WIDTH = int((len(MY_MAP[0]) + 5) * BLOC_SIZE)
+SCREEN_HEIGHT = int(len(MY_MAP) * BLOC_SIZE)
 
 # Autres variables
 DOWN = (0, 1)
@@ -747,48 +828,99 @@ LIST_OF_DEFENDERS = []
 F = Tk()
 F.geometry(str(SCREEN_WIDTH)+"x"+str(SCREEN_HEIGHT))
 
-CANVAS = Canvas(F, width=SCREEN_WIDTH-STATS_WIDTH, height=SCREEN_HEIGHT)
-CANVAS.bind("<Button-1>", click_event)
+
+CANVAS = Canvas(F, width=SCREEN_WIDTH-STATS_WIDTH, height=SCREEN_HEIGHT, bg="black")
+CANVAS.bind("<Button-1>", on_click)
 CANVAS.place(x=0, y=0)
+
+B_IZI = Button(
+    CANVAS,
+    text="Facile",
+    width=20,
+    height=5,
+    command=lambda: main(0))
+B_IZI.place(x=350, y=235)
+
+B_MEDIUM = Button(
+    CANVAS,
+    text="Moyen",
+    width=20,
+    height=5,
+    command=lambda: main(1))
+B_MEDIUM.place(x=350, y=345)
+
+B_HARD = Button(
+    CANVAS,
+    text="Difficile",
+    width=20,
+    height=5,
+    command=lambda: main(2))
+B_HARD.place(x=350, y=455)
+
+B_IMPOSSIBLE = Button(
+    CANVAS,
+    text="Hardcore",
+    width=20,
+    height=5,
+    command=lambda: main(3))
+B_IMPOSSIBLE.place(x=350, y=565)
+
 
 FRAME_STATS = Canvas(F, width=STATS_WIDTH, height=SCREEN_HEIGHT / 2, bg="black")
 FRAME_STATS.place(x=SCREEN_WIDTH-STATS_WIDTH, y=0)
+
 B_START_WAVE = Button(
     FRAME_STATS,
     text="Lancer la vague",
     width=15,
     command=launch_wave)
-B_START_WAVE.place(x=15, y=35)
+B_START_WAVE.pack_forget()
+
 B_SPEED = Button(FRAME_STATS, text="x1", command=change_speed)
-B_SPEED.place(x=205, y=35)
-L_WAVE_RUN = Label(FRAME_STATS, text="Avancée de la vague: 0/"+str(GAME_MANAGER.get("waves")[0][1]))
+B_SPEED.pack_forget()
+
+B_QUIT = Button(FRAME_STATS, text="QUIT", command=sys.exit)
+B_QUIT.pack_forget()
+
+L_WAVE_RUN = Label(FRAME_STATS, text="")
 L_WAVE_RUN.place(x=15, y=115)
-L_GOLD = Label(FRAME_STATS, text="Or: "+str(PLAYER.get("GOLD")))
+
+L_GOLD = Label(FRAME_STATS, text="")
 L_GOLD.place(x=15, y=175)
-L_LIFE = Label(FRAME_STATS, text="Vies: "+str(PLAYER.get("LIFE")))
+
+L_LIFE = Label(FRAME_STATS, text="")
 L_LIFE.place(x=15, y=235)
-L_MONSTER_KILLED = Label(FRAME_STATS, text="Monstres Tués: 0")
+
+L_MONSTER_KILLED = Label(FRAME_STATS, text="")
 L_MONSTER_KILLED.place(x=15, y=295)
-L_SCORE = Label(FRAME_STATS, text="Score: "+str(PLAYER.get("SCORE")))
+
+L_SCORE = Label(FRAME_STATS, text="")
 L_SCORE.place(x=15, y=355)
 
-FRAME_REQUEST = Canvas(F, width=STATS_WIDTH, height=SCREEN_HEIGHT / 2, bg="black")
-FRAME_REQUEST.place(x=SCREEN_WIDTH-STATS_WIDTH, y=SCREEN_HEIGHT / 2)
-L_DAMAGE = Label(FRAME_REQUEST, text="")
+
+FRAME_OPTION = Canvas(F, width=STATS_WIDTH, height=SCREEN_HEIGHT / 2, bg="black")
+FRAME_OPTION.place(x=SCREEN_WIDTH-STATS_WIDTH, y=SCREEN_HEIGHT / 2)
+
+L_DAMAGE = Label(FRAME_OPTION, text="")
 L_DAMAGE.place(x=15, y=25)
-L_RANGE = Label(FRAME_REQUEST, text="")
+
+L_RANGE = Label(FRAME_OPTION, text="")
 L_RANGE.place(x=STATS_WIDTH/2, y=25)
-L_SPEED = Label(FRAME_REQUEST, text="")
+
+L_SPEED = Label(FRAME_OPTION, text="")
 L_SPEED.place(x=15, y=105)
-L_KILLED = Label(FRAME_REQUEST, text="")
+
+L_KILLED = Label(FRAME_OPTION, text="")
 L_KILLED.place(x=STATS_WIDTH/2, y=105)
-L_LVL_MAX = Label(FRAME_REQUEST, text="")
+
+L_LVL_MAX = Label(FRAME_OPTION, text="")
 L_LVL_MAX.place(x=150, y=225)
 
 
-for widget in FRAME_STATS.winfo_children() + FRAME_REQUEST.winfo_children():
+for widget in FRAME_STATS.winfo_children() + FRAME_OPTION.winfo_children():
     if isinstance(widget, Label):
         widget.configure(bg="black", fg="white")
+
 
 IMG_EMPTY_BLOC = PhotoImage(file='ressources/blocs/bloc_vide.png')
 IMG_X_BLOC = PhotoImage(file='ressources/blocs/bloc_x.png')
@@ -822,5 +954,4 @@ IMG_TOUR_D = [
 ]
 
 
-main()
 F.mainloop()
