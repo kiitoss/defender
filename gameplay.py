@@ -95,8 +95,9 @@ GAME_MANAGER = {
         [7, 30, 1000, 40, 225],
         [8, 15, 600, 45, 250],
         [5, 1, 12000, 700, 275],
-        [9, 35, 1000, 7, 305]
+        [9, 35, 1000, 50, 305]
     ],
+    "waves_round": [],
     "coeff_wave": 1,
     "wave_now": 0
 }
@@ -202,7 +203,7 @@ DEFENDERS = [
             },
             {
                 "price": 700,
-                "min_dead": 30,
+                "min_dead": 20,
                 "upgrade_range": BLOC_SIZE * 0.5,
                 "upgrade_damages": 150,
                 "upgrade_speed": 100
@@ -231,7 +232,7 @@ DEFENDERS = [
             },
             {
                 "price": 700,
-                "min_dead": 30,
+                "min_dead": 20,
                 "upgrade_range": BLOC_SIZE * 0.5,
                 "upgrade_damages": 80,
                 "upgrade_speed": 100
@@ -260,7 +261,7 @@ DEFENDERS = [
             },
             {
                 "price": 700,
-                "min_dead": 30,
+                "min_dead": 20,
                 "upgrade_range": BLOC_SIZE * 0.5,
                 "upgrade_damages": 80,
                 "upgrade_speed": 100

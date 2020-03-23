@@ -13,6 +13,8 @@ import gameplay
 
 def main(code_difficulty):
     """Fonction principale, appellee apres creation de la fenetre et des canvas (tkinter)"""
+    creation_all_waves(1)
+
     initialisation_labels()
 
     my_map = gameplay.MAPS[code_difficulty]
@@ -29,7 +31,8 @@ def initialisation_labels():
     B_START_WAVE.place(x=15, y=35)
     B_SPEED.place(x=205, y=35)
     B_QUIT.place(x=305, y=35)
-    L_WAVE_RUN.config(text="Avancée de la vague: 0/"+str(WAVES[0][1]))
+    waves_round = GAME_MANAGER.get("waves_round")
+    L_WAVE_RUN.config(text="Avancée de la vague: 0/"+str(waves_round[0][1]))
     L_GOLD.config(text="Or: "+str(PLAYER.get("GOLD")))
     L_LIFE.config(text="Vies: "+str(PLAYER.get("LIFE")))
     L_MONSTER_KILLED.config(text="Monstres Tués: 0")
@@ -57,7 +60,7 @@ def creation_all_waves(coeff_wave):
             wave_parameters.append(other_parameter)
 
         full_wave.append(wave_parameters)
-    return full_wave
+    GAME_MANAGER["waves_round"] = full_wave
 
 
 def on_click(event):
@@ -423,9 +426,10 @@ def creation_wave(monster, remaining_monsters, click=None):
     if click is not None:
         B_START_WAVE.config(text="Vague suivante")
 
+    waves_round = GAME_MANAGER.get("waves_round")
     total_wave_size = 0
     for i in range(GAME_MANAGER.get("wave_now")):
-        total_wave_size += WAVES[i][1]
+        total_wave_size += waves_round[i][1]
     if len(LIST_OF_MONSTERS) + len(DEAD_MONSTERS) < total_wave_size and remaining_monsters > 0:
         remaining_monsters -= 1
         Monster(monster)
@@ -439,11 +443,12 @@ def creation_wave(monster, remaining_monsters, click=None):
 
 def launch_wave():
     """Lance la creation de la vague d'ennemies"""
-    if len(WAVES) <= GAME_MANAGER.get("wave_now"):
+    waves_round = GAME_MANAGER.get("waves_round")
+    if len(waves_round) <= GAME_MANAGER.get("wave_now"):
         return
     GAME_MANAGER["wave_now"] += 1
-    monster = WAVES[GAME_MANAGER.get("wave_now") - 1][0]
-    wave_size = WAVES[GAME_MANAGER.get("wave_now") - 1][1]
+    monster = waves_round[GAME_MANAGER.get("wave_now") - 1][0]
+    wave_size = waves_round[GAME_MANAGER.get("wave_now") - 1][1]
     creation_wave(monster, wave_size, 1)
 
 
@@ -488,9 +493,10 @@ class Monster():
 
         LIST_OF_MONSTERS.append(self)
         wave_run = str(len(LIST_OF_MONSTERS)+len(DEAD_MONSTERS))
+        waves_round = GAME_MANAGER.get("waves_round")
         total_wave_size = 0
         for i in range(GAME_MANAGER.get("wave_now")):
-            total_wave_size += WAVES[i][1]
+            total_wave_size += waves_round[i][1]
         L_WAVE_RUN.config(text="Avancée de la vague: "+wave_run+"/"+str(total_wave_size))
 
         self.auto_move()
@@ -575,21 +581,22 @@ class Monster():
         CANVAS.delete(self.image)
 
         monster_appeared = len(LIST_OF_MONSTERS) + len(DEAD_MONSTERS)
+        waves_round = GAME_MANAGER.get("waves_round")
         total_wave_size = 0
         for i in range(GAME_MANAGER.get("wave_now")):
-            total_wave_size += WAVES[i][1]
+            total_wave_size += waves_round[i][1]
         if len(LIST_OF_MONSTERS) == 0 and monster_appeared == total_wave_size:
             DEAD_MONSTERS[:] = []
             prime = 0
             for i in range(GAME_MANAGER.get("wave_now")):
-                prime += WAVES[0][4]
-                WAVES.remove(WAVES[0])
+                prime += waves_round[0][4]
+                waves_round.remove(waves_round[0])
             GAME_MANAGER["wave_now"] = 0
             PLAYER["GOLD"] += prime
             upgrade_stats()
             B_START_WAVE.config(text="Lancer la vague")
-            if len(WAVES) > 0:
-                len_wave = WAVES[0][1]
+            if len(waves_round) > 0:
+                len_wave = waves_round[0][1]
                 L_WAVE_RUN.config(text="Avancée de la vague: 0/"+str(len_wave))
             else:
                 print("VICTORY: ", (GAME_MANAGER.get("coeff_wave")-1)/4+1)
@@ -597,7 +604,6 @@ class Monster():
                 PLAYER["GOLD"] += (1000 * GAME_MANAGER.get("coeff_wave"))
                 upgrade_stats()
                 creation_all_waves(GAME_MANAGER.get("coeff_wave"))
-                # sys.exit()
         upgrade_stats()
 
 
@@ -806,7 +812,6 @@ MY_MAP = GAME_MANAGER.get("map")
 BLOC_SIZE = gameplay.GAME_MANAGER.get("bloc_size")
 ALL_MONSTERS = gameplay.MONSTERS
 DEFENDERS = gameplay.DEFENDERS
-WAVES = creation_all_waves(1)
 
 # Création des variables adaptées aux paramètres précédents
 STATS_WIDTH = 5 * BLOC_SIZE
